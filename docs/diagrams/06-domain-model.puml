@@ -1,0 +1,103 @@
+@startuml
+title Portfolio and historical-risk domain model
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam ArrowColor #374151
+skinparam class {
+  BorderColor #374151
+  FontColor #111827
+  AttributeIconSize 0
+}
+hide empty members
+
+class Portfolio <<aggregate root>> {
+  +Id: PortfolioId
+  +Name: string
+  +BaseCurrency: Currency
+  +Positions: IReadOnlyList<Position>
+  +NetMarketValue: decimal
+  +GrossExposure: decimal
+  +Create(...): Portfolio
+}
+
+class PortfolioId <<readonly record struct>> {
+  +Value: Guid
+  +New(): PortfolioId
+}
+
+class Currency <<readonly record struct>> {
+  +Code: string
+  +From(code): Currency
+}
+
+class Position <<record>> {
+  +InstrumentId: InstrumentId
+  +Quantity: decimal
+  +Price: decimal
+  +MarketValue: decimal
+  +Create(...): Position
+}
+
+class InstrumentId <<readonly record struct>> {
+  +Value: string
+  +From(value): InstrumentId
+}
+
+class HistoricalScenario {
+  +AsOfDate: DateOnly
+  +Returns: IReadOnlyDictionary<InstrumentId, decimal>
+  +Create(...): HistoricalScenario
+  +ReturnFor(instrumentId): decimal
+}
+
+interface IRiskCalculator {
+  +Calculate(portfolio, scenarios, confidence): RiskReport
+}
+
+class HistoricalSimulationRiskCalculator {
+  +Calculate(portfolio, scenarios, confidence): RiskReport
+}
+
+class RiskReport <<record>> {
+  +PortfolioId: PortfolioId
+  +Currency: Currency
+  +ConfidenceLevel: decimal
+  +ValueAtRisk: decimal
+  +ExpectedShortfall: decimal
+  +DailyPnlVolatility: decimal
+  +ScenarioResults: IReadOnlyList<ScenarioResult>
+}
+
+class ScenarioResult <<record>> {
+  +AsOfDate: DateOnly
+  +ProfitAndLoss: decimal
+  +Loss: decimal
+}
+
+Portfolio *-- "1..*" Position : owns immutable snapshot
+Portfolio *-- PortfolioId
+Portfolio *-- Currency
+Position *-- InstrumentId
+HistoricalScenario o-- "1..*" InstrumentId : return keys
+HistoricalSimulationRiskCalculator ..|> IRiskCalculator
+IRiskCalculator ..> Portfolio
+IRiskCalculator ..> HistoricalScenario
+IRiskCalculator ..> RiskReport
+RiskReport *-- "1..*" ScenarioResult
+RiskReport *-- PortfolioId
+RiskReport *-- Currency
+
+note right of Position
+  quantity > 0: long
+  quantity < 0: short
+  market value = quantity × price
+end note
+
+note right of HistoricalScenario
+  One date of observed returns.
+  The calculator applies those returns
+  to today's linear market values.
+end note
+@enduml

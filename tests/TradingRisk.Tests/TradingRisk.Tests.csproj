@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <!-- xUnit v3 runs as an executable through Microsoft Testing Platform. -->
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- Package versions are centrally managed; tests declare only package identity. -->
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <PackageReference Include="xunit.v3.mtp-v2" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- Tests reference each layer so narrow and full-slice tests can coexist. -->
+        <ProjectReference Include="../../src/TradingRisk.Api/TradingRisk.Api.csproj" />
+        <ProjectReference Include="../../src/TradingRisk.Application/TradingRisk.Application.csproj" />
+        <ProjectReference Include="../../src/TradingRisk.Domain/TradingRisk.Domain.csproj" />
+        <ProjectReference Include="../../src/TradingRisk.Infrastructure/TradingRisk.Infrastructure.csproj" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <ItemGroup>
+        <!-- Package versions come from Directory.Packages.props. -->
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <!-- Explicitly pins a patched 2.x line instead of the vulnerable transitive 2.0.0. -->
+        <PackageReference Include="Microsoft.OpenApi" />
+    </ItemGroup>
+    <ItemGroup>
+        <!-- API is the composition root, so it sees ports, domain policy, and adapters. -->
+        <ProjectReference Include="../TradingRisk.Application/TradingRisk.Application.csproj" />
+        <ProjectReference Include="../TradingRisk.Domain/TradingRisk.Domain.csproj" />
+        <ProjectReference Include="../TradingRisk.Infrastructure/TradingRisk.Infrastructure.csproj" />
+    </ItemGroup>
+</Project>

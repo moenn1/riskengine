@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <!-- Application may use Domain policy; Domain has no reverse reference. -->
+        <ProjectReference Include="../TradingRisk.Domain/TradingRisk.Domain.csproj" />
+    </ItemGroup>
+</Project>

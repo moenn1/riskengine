@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore RiskEngine.slnx
+
+      # Later stages disable implicit work so failures belong to one visible phase.
+      - name: Build
+        run: dotnet build RiskEngine.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test RiskEngine.slnx --configuration Release --no-build

@@ -1,0 +1,62 @@
+@host = http://localhost:5229
+
+### Liveness/readiness starting point
+GET {{host}}/health
+
+### Create a two-position portfolio
+# @name createPortfolio
+POST {{host}}/api/v1/portfolios
+Content-Type: application/json
+
+{
+  "name": "Learning Book",
+  "baseCurrency": "USD",
+  "positions": [
+    {
+      "instrumentId": "AAPL",
+      "quantity": 100,
+      "price": 200
+    },
+    {
+      "instrumentId": "MSFT",
+      "quantity": 50,
+      "price": 400
+    }
+  ]
+}
+
+### Copy the id from the response above
+@portfolioId = 00000000-0000-0000-0000-000000000000
+
+### Read the portfolio
+GET {{host}}/api/v1/portfolios/{{portfolioId}}
+
+### Calculate 80% historical VaR and Expected Shortfall
+POST {{host}}/api/v1/portfolios/{{portfolioId}}/risk
+Content-Type: application/json
+
+{
+  "confidenceLevel": 0.80,
+  "scenarios": [
+    {
+      "asOfDate": "2026-01-02",
+      "returns": { "AAPL": -0.04, "MSFT": -0.02 }
+    },
+    {
+      "asOfDate": "2026-01-05",
+      "returns": { "AAPL": -0.02, "MSFT": 0.01 }
+    },
+    {
+      "asOfDate": "2026-01-06",
+      "returns": { "AAPL": 0.00, "MSFT": 0.00 }
+    },
+    {
+      "asOfDate": "2026-01-07",
+      "returns": { "AAPL": 0.01, "MSFT": 0.02 }
+    },
+    {
+      "asOfDate": "2026-01-08",
+      "returns": { "AAPL": 0.03, "MSFT": 0.02 }
+    }
+  ]
+}

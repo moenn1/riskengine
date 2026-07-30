@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <!-- Infrastructure implements Application-owned ports using Domain objects. -->
+        <ProjectReference Include="../TradingRisk.Application/TradingRisk.Application.csproj" />
+        <ProjectReference Include="../TradingRisk.Domain/TradingRisk.Domain.csproj" />
+    </ItemGroup>
+</Project>

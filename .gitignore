@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.idea/
+.vs/
+TestResults/
+# Local output produced by documentation examples such as dotnet publish -o artifacts/publish.
+artifacts/
+*.user
+*.suo
+*.DotSettings.user
+.DS_Store

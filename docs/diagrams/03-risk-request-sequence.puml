@@ -1,0 +1,49 @@
+@startuml
+title Historical-risk HTTP request
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam sequence {
+  ArrowColor #374151
+  LifeLineBorderColor #374151
+  ParticipantBorderColor #374151
+  ParticipantFontColor #111827
+}
+
+actor Client
+participant "ASP.NET Core\nmiddleware" as Middleware
+participant "PortfoliosController" as Controller
+participant "CalculatePortfolioRiskHandler" as Handler
+database "IPortfolioRepository\n(InMemory adapter)" as Repository
+participant "HistoricalSimulation\nRiskCalculator" as Calculator
+participant "ApiExceptionHandler" as Errors
+
+Client -> Middleware : POST /api/v1/portfolios/{id}/risk
+Middleware -> Middleware : exception handling\nHTTPS redirect\nrate limiting\nrouting and model binding
+Middleware -> Controller : CalculateRisk(id, request, token)
+Controller -> Controller : enforce request-size policy\nmap HTTP contract to query
+Controller -> Handler : HandleAsync(query, token)
+Handler -> Handler : validate transport-neutral input
+Handler -> Repository : GetByIdAsync(PortfolioId, token)
+Repository --> Handler : Portfolio or null
+
+alt portfolio exists
+  Handler -> Handler : map scenario inputs\nto domain value objects
+  Handler -> Calculator : Calculate(portfolio, scenarios, confidence)
+  loop each historical scenario
+    Calculator -> Calculator : P&L = sum(market value × return)\nLoss = -P&L
+  end
+  Calculator -> Calculator : order losses\ncompute VaR, ES and volatility
+  Calculator --> Handler : RiskReport
+  Handler -> Handler : map report to DTO\nadd TimeProvider timestamp
+  Handler --> Controller : RiskReportDto
+  Controller --> Middleware : 200 OK + DTO
+  Middleware --> Client : JSON risk report
+else portfolio is missing
+  Repository --> Handler : null
+  Handler --> Middleware : throws PortfolioNotFoundException
+  Middleware -> Errors : TryHandleAsync(exception)
+  Errors --> Client : 404 Problem Details JSON
+end
+@enduml

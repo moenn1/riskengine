@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+      Intentionally package- and project-reference-free. Shared target/compiler
+      settings are inherited from Directory.Build.props.
+    -->
+</Project>

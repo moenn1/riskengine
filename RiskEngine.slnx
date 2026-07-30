@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/TradingRisk.Api/TradingRisk.Api.csproj" />
+  <Project Path="src/TradingRisk.Application/TradingRisk.Application.csproj" />
+  <Project Path="src/TradingRisk.Domain/TradingRisk.Domain.csproj" />
+  <Project Path="src/TradingRisk.Infrastructure/TradingRisk.Infrastructure.csproj" />
+  <Project Path="tests/TradingRisk.Tests/TradingRisk.Tests.csproj" />
+</Solution>

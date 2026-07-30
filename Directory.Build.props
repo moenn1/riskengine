@@ -1,0 +1,21 @@
+<Project>
+    <!--
+      MSBuild automatically imports Directory.Build.props into projects below this
+      directory. This is the .NET equivalent of shared compiler/build policy in a
+      Maven parent POM or Gradle convention plugin.
+    -->
+    <PropertyGroup>
+        <!-- TargetFramework selects the runtime/API contract; LangVersion selects C# syntax. -->
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>14.0</LangVersion>
+        <!-- Nullable enables compile-time null-state analysis; it is not runtime validation. -->
+        <Nullable>enable</Nullable>
+        <!-- The SDK generates common global using directives under obj/. -->
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- CI and local builds fail instead of allowing compiler/analyzer warnings to accumulate. -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
+        <!-- The same inputs should produce byte-for-byte stable compiler output where supported. -->
+        <Deterministic>true</Deterministic>
+    </PropertyGroup>
+</Project>
