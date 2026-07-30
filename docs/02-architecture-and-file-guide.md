@@ -45,8 +45,8 @@ For a risk request:
 9. Any expected validation/not-found exception is converted by
    `ApiExceptionHandler` to Problem Details.
 
-See the editable
-[risk request sequence diagram](diagrams/03-risk-request-sequence.puml) and the
+See the editable, GitHub-rendered
+[risk request sequence diagram](06-mermaid-diagrams.md#3-risk-request-sequence) and the
 [architecture/domain deep dive](07-architecture-and-domain-design-deep-dive.md)
 for the reasoning behind each boundary.
 
@@ -124,6 +124,9 @@ version.
 | File | Purpose and lesson |
 |---|---|
 | `Program.cs` | Top-level entry point, middleware order, options validation, DI lifetimes, rate limiting, health/OpenAPI endpoints, and application startup. The visible partial `Program` enables in-process tests; the `Testing` environment skips HTTPS redirection because `TestServer` has no TLS listener. |
+| `wwwroot/index.html` | Semantic, progressively organized browser workbench for creating a book, entering scenarios, and reading a risk report. ASP.NET Core serves it as the default file for `/`. |
+| `wwwroot/css/site.css` | Responsive visual system, component layout, focus states, chart styling, and reduced-motion behavior. It uses native CSS rather than a frontend package. |
+| `wwwroot/js/app.js` | Browser adapter that manages UI state, builds request DTO-shaped JSON, calls the real API with `fetch`, handles Problem Details, and renders returned risk metrics without recalculating them. |
 | `Contracts/PortfolioRequests.cs` | JSON request shapes and boundary-level Data Annotations. On positional records, ASP.NET Core validation metadata targets constructor parameters. Decimal range limits use invariant culture so deployment locale cannot change validation. Contracts are separate from domain types to prevent transport concerns leaking inward. |
 | `Controllers/PortfoliosController.cs` | Versioned REST adapter for create/get/calculate. It remains thin, passes cancellation, maps contracts, and uses source-generated/cached structured logging to avoid per-call template allocations. |
 | `ErrorHandling/ApiExceptionHandler.cs` | Central exception-to-Problem-Details mapping, safe handling of unexpected errors, and source-generated logging with stable event IDs. |
@@ -155,7 +158,7 @@ in-process tests and the inner projects for focused tests.
 | `Domain/PortfolioTests.cs` | Aggregate invariants and long/short exposure behavior. |
 | `Domain/HistoricalSimulationRiskCalculatorTests.cs` | Deterministic formula tests, missing-data failure, and confidence validation. This is also an executable finance specification. |
 | `Application/CalculatePortfolioRiskHandlerTests.cs` | Handler test with real in-memory adapter and a fake `TimeProvider`, avoiding ambient clock flakiness. |
-| `Api/PortfolioApiTests.cs` | Boots the real ASP.NET app in memory and tests JSON/HTTP, DI, storage, handler, and domain calculation together. It disables configuration reload only in the restricted test process because the workspace blocks the native file watcher. |
+| `Api/PortfolioApiTests.cs` | Boots the real ASP.NET app in memory and tests the default UI document/assets plus JSON/HTTP, DI, storage, handler, and domain calculation. It disables configuration reload only in the restricted test process because the workspace blocks the native file watcher. |
 
 The test pyramid here is intentional: many fast domain tests, fewer handler
 tests, and one broad HTTP test. Later PostgreSQL tests belong between handler
@@ -171,17 +174,12 @@ and full end-to-end coverage.
 | `docs/03-risk-metrics.md` | Formulas, worked example, terminology, assumptions, limitations, and primary references. |
 | `docs/04-exercises.md` | Implementation labs with requirements and review questions. |
 | `docs/05-build-dependencies-startup-and-packaging.md` | Detailed project/dependency syntax, restore/build/test/publish behavior, Spring startup comparison, DI, configuration, CI, and Docker packaging. |
-| `docs/06-plantuml-diagrams.md` | Diagram index, interpretation guide, and Rider/CLI rendering instructions. |
+| `docs/06-mermaid-diagrams.md` | Inline component, startup, request, build, DI, domain, and browser-flow diagrams that GitHub renders directly from Markdown. |
 | `docs/07-architecture-and-domain-design-deep-dive.md` | Project boundaries, Clean/Hexagonal Architecture, DDD vocabulary, commands/queries/DTOs, validation layers, immutability, persistence seams, and modular-monolith trade-offs. |
 | `docs/08-aspnet-core-web-api-deep-dive.md` | Kestrel/host, middleware, routing, controllers, model binding, validation, options, errors, logging, rate limiting, health, OpenAPI, cancellation, async, and debugging. |
 | `docs/09-testing-dotnet-and-risk-deep-dive.md` | xUnit v3 syntax, test project anatomy, test doubles, deterministic time, `WebApplicationFactory`, isolation, numeric/risk assertions, and future database tests. |
 | `docs/10-production-scale-dotnet-deep-dive.md` | EF Core, transactions, async/parallelism, durable jobs/messaging, `HttpClient`, caching, security, observability, performance, scaling, deployment, and model governance. |
-| `docs/diagrams/01-component-dependencies.puml` | Compile-time project references and inward dependency direction. |
-| `docs/diagrams/02-startup-comparison.puml` | Spring Boot and ASP.NET Core process-start sequence side by side. |
-| `docs/diagrams/03-risk-request-sequence.puml` | Successful and not-found runtime flow for the historical-risk endpoint. |
-| `docs/diagrams/04-build-and-publish.puml` | Source, restore, build, test, publish, and runtime artifact flow. |
-| `docs/diagrams/05-di-lifetimes.puml` | Root provider, request scopes, shared singletons, and scoped handlers. |
-| `docs/diagrams/06-domain-model.puml` | Portfolio, positions, scenarios, risk strategy, and report relationships. |
+| `docs/11-browser-ui-deep-dive.md` | Detailed guide to static-file hosting, semantic HTML, CSS, browser JavaScript, API calls, security, testing, packaging, and Java/Spring comparisons. |
 
 ## Rules that protect the architecture
 

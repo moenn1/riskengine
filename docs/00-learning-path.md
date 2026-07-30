@@ -50,6 +50,8 @@ Learn:
 - use-case handlers and dependency inversion;
 - structured logging, exception mapping, Problem Details, health checks, rate
   limiting, and OpenAPI;
+- `wwwroot`, default files, same-origin `fetch`, semantic HTML, responsive CSS,
+  accessible result rendering, and client-side Problem Details handling;
 - unit tests, handler tests, and in-process API tests;
 - empirical VaR, Expected Shortfall, P&L distributions, and volatility.
 
@@ -68,12 +70,13 @@ Read:
 
 - [architecture and domain-design deep dive](07-architecture-and-domain-design-deep-dive.md);
 - [ASP.NET Core web API deep dive](08-aspnet-core-web-api-deep-dive.md);
+- [browser UI deep dive](11-browser-ui-deep-dive.md);
 - [risk metrics and finance foundations](03-risk-metrics.md);
 - [.NET and risk testing deep dive](09-testing-dotnet-and-risk-deep-dive.md);
-- [PlantUML diagrams](06-plantuml-diagrams.md).
+- [GitHub-rendered Mermaid diagrams](06-mermaid-diagrams.md).
 
 Exit test: change a formula, predict which test fails, and explain why the
-controller does not calculate risk itself.
+controller and browser do not calculate risk themselves.
 
 ## Milestone 2 — durable persistence
 

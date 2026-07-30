@@ -343,7 +343,8 @@ using var client = factory.CreateClient();
 5. supplies an `HttpClient` that sends requests to that server.
 
 It does not bind a public TCP port. JSON serialization, routing, model binding,
-controllers, handlers, and the in-memory adapter still run.
+controllers, handlers, the in-memory adapter, default-file rewriting, and
+static-file middleware still run.
 
 ### Why `public partial class Program` exists
 
@@ -364,6 +365,21 @@ the test host and its resources shut down even if an assertion fails.
 
 `HttpClient` and each `HttpResponseMessage` use ordinary `using` so their
 disposable resources are released deterministically.
+
+### Static UI integration test
+
+`RootServesBrowserWorkbenchAndItsStaticAssets` requests `/`, CSS, and JavaScript
+through that same test host. It checks HTTP success, content types, and small
+identifying strings.
+
+That proves the Web SDK/test content root, `UseDefaultFiles`,
+`UseStaticFiles`, and asset discovery work together. Reading files directly in
+the test would not prove the application can serve them.
+
+The test does not execute JavaScript or assess rendered layout. Those are
+different boundaries for browser end-to-end, accessibility, and visual tests.
+The [browser UI deep dive](11-browser-ui-deep-dive.md) explains the testing
+ladder.
 
 ## 13. The vertical-slice test
 
@@ -501,6 +517,8 @@ Boots the ASP.NET Core app in process:
 - `PortfolioApiTests`.
 
 Good for routes, DI, JSON, error shapes, and important vertical slices.
+It also covers the static UI shell because that shell is part of the same
+deployable ASP.NET Core application.
 
 ### Infrastructure integration
 

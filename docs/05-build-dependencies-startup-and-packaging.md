@@ -589,6 +589,7 @@ Publish creates a deployment closure:
 - `.deps.json` describing runtime dependencies;
 - `.runtimeconfig.json` describing target runtime/framework;
 - application configuration/content files;
+- browser assets from the Web SDK's `wwwroot` convention;
 - platform executable and/or runtime files depending on deployment mode.
 
 Publishing is the closest .NET equivalent to producing a runnable Spring Boot
@@ -610,7 +611,11 @@ src/TradingRisk.Api/bin/Release/net10.0/
 ├── TradingRisk.Infrastructure.dll
 ├── package dependency assemblies
 ├── appsettings.json
-└── appsettings.Development.json
+├── appsettings.Development.json
+└── wwwroot/
+    ├── index.html
+    ├── css/site.css
+    └── js/app.js
 ```
 
 Meanings:
@@ -620,6 +625,8 @@ Meanings:
 - `.deps.json`: dependency graph used by the host.
 - `.runtimeconfig.json`: runtime/framework and runtime options.
 - appsettings files: content copied for runtime configuration.
+- `wwwroot`: public HTML/CSS/JavaScript content tracked by the Web SDK and
+  served by ASP.NET Core's static-file pipeline.
 
 `obj/` contains intermediate and generated files:
 

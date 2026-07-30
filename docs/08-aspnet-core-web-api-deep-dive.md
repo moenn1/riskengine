@@ -9,8 +9,10 @@ Read it with:
 - [`Program.cs`](../src/TradingRisk.Api/Program.cs);
 - [`PortfoliosController.cs`](../src/TradingRisk.Api/Controllers/PortfoliosController.cs);
 - [`PortfolioRequests.cs`](../src/TradingRisk.Api/Contracts/PortfolioRequests.cs);
-- the [request sequence diagram](diagrams/03-risk-request-sequence.puml); and
-- the [startup comparison diagram](diagrams/02-startup-comparison.puml).
+- the [request sequence diagram](06-mermaid-diagrams.md#3-risk-request-sequence);
+- the [startup comparison diagram](06-mermaid-diagrams.md#2-startup-comparison);
+  and
+- the [browser UI deep dive](11-browser-ui-deep-dive.md).
 
 ## 1. HTTP stack translation
 
@@ -155,6 +157,28 @@ Production TLS may terminate at a proxy. Forwarded-header and proxy trust
 configuration then determine whether ASP.NET Core recognizes the original
 request as HTTPS. Configure this for the actual hosting platform; blindly
 trusting forwarded headers is a security problem.
+
+### Default and static browser files
+
+```csharp
+app.UseDefaultFiles();
+app.UseStaticFiles();
+```
+
+`UseDefaultFiles` rewrites `/` to a conventional document such as
+`/index.html`; it does not write the file body. The later static-file middleware
+serves the rewritten file or direct `/css/...` and `/js/...` requests from the
+Web SDK's `wwwroot` web root.
+
+Order is significant: if static-file middleware runs first, it sees `/` before
+the useful rewrite. Static assets are served before the controller rate-limiter
+mapping, while the API calls made by those assets still reach rate-limited
+controller endpoints.
+
+Spring Boot provides a comparable static-resource/welcome-page convention
+under `src/main/resources/static`. Read the
+[browser UI deep dive](11-browser-ui-deep-dive.md) for the build, security,
+HTML/CSS/JavaScript, same-origin, and testing implications.
 
 ### Rate limiter and routing
 
@@ -1048,6 +1072,8 @@ Rider to run the fuller request set.
 - Is cancellation propagated into every I/O boundary?
 - Is middleware ordered for exception handling, proxying, CORS, auth, rate
   limiting, and endpoints?
+- Are all public static assets intentionally under `wwwroot`, with no secrets
+  or private source/configuration?
 - Are health endpoints cheap and separated into liveness/readiness as needed?
 - Is rate limiting partitioned by the correct identity and cost?
 - Does OpenAPI match tested behavior?
@@ -1057,6 +1083,7 @@ Rider to run the fuller request set.
 
 - [ASP.NET Core fundamentals](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/?view=aspnetcore-10.0)
 - [ASP.NET Core middleware](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-10.0)
+- [ASP.NET Core static files](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/static-files?view=aspnetcore-10.0)
 - [Model binding](https://learn.microsoft.com/en-us/aspnet/core/mvc/models/model-binding?view=aspnetcore-10.0)
 - [Model validation](https://learn.microsoft.com/en-us/aspnet/core/mvc/models/validation?view=aspnetcore-10.0)
 - [Options pattern](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/configuration/options?view=aspnetcore-10.0)

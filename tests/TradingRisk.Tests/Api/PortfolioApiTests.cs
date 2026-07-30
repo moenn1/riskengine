@@ -11,18 +11,50 @@ namespace TradingRisk.Tests.Api;
 public sealed class PortfolioApiTests
 {
     [Fact]
+    public async Task RootServesBrowserWorkbenchAndItsStaticAssets()
+    {
+        DisableConfigurationReload();
+
+        // This is an HTTP integration test of the ASP.NET Core static-file pipeline,
+        // not a test that reads source files directly from disk.
+        await using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        using var rootResponse = await client.GetAsync("/", cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, rootResponse.StatusCode);
+        Assert.Equal("text/html", rootResponse.Content.Headers.ContentType?.MediaType);
+        var html = await rootResponse.Content.ReadAsStringAsync(cancellationToken);
+        Assert.Contains("Risk Engine · Historical Simulation Lab", html);
+        Assert.Contains("id=\"portfolio-form\"", html);
+
+        using var styleResponse = await client.GetAsync(
+            "/css/site.css",
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, styleResponse.StatusCode);
+        Assert.Equal("text/css", styleResponse.Content.Headers.ContentType?.MediaType);
+
+        using var scriptResponse = await client.GetAsync(
+            "/js/app.js",
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, scriptResponse.StatusCode);
+        Assert.Equal(
+            "text/javascript",
+            scriptResponse.Content.Headers.ContentType?.MediaType);
+        var script = await scriptResponse.Content.ReadAsStringAsync(cancellationToken);
+        Assert.Contains("async function submitPortfolio", script);
+        Assert.Contains("async function submitRisk", script);
+    }
+
+    [Fact]
     public async Task CreateThenCalculateRiskCompletesVerticalSlice()
     {
-        // The managed Codex workspace does not permit the native file watcher used for
-        // live appsettings reload. This switch affects only the isolated test process.
-        Environment.SetEnvironmentVariable(
-            "DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE",
-            "false");
+        DisableConfigurationReload();
 
         // This boots the real Program.cs and middleware with an in-process TestServer;
         // no public TCP port is opened.
-        await using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+        await using var factory = CreateFactory();
         using var client = factory.CreateClient();
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -65,6 +97,21 @@ public sealed class PortfolioApiTests
         Assert.Equal(200m, report.ValueAtRisk);
         Assert.Equal(1_200m, report.ExpectedShortfall);
         Assert.Equal(5, report.ScenarioCount);
+    }
+
+    private static WebApplicationFactory<Program> CreateFactory()
+    {
+        return new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+    }
+
+    private static void DisableConfigurationReload()
+    {
+        // The managed Codex workspace does not permit the native file watcher used for
+        // live appsettings reload. This switch affects only the isolated test process.
+        Environment.SetEnvironmentVariable(
+            "DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE",
+            "false");
     }
 
     private static HistoricalScenarioRequest Scenario(

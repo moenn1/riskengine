@@ -73,6 +73,12 @@ if (!app.Environment.IsEnvironment("Testing"))
     app.UseHttpsRedirection();
 }
 
+// The Web SDK publishes files under wwwroot. DefaultFiles rewrites "/" to
+// "/index.html"; StaticFiles serves the HTML, CSS, and JavaScript without a controller.
+// Spring Boot provides a similar convention under src/main/resources/static.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="description"
+    content="An interactive historical risk workbench for learning C#, .NET, ASP.NET Core, and portfolio risk.">
+  <title>Risk Engine · Historical Simulation Lab</title>
+  <link rel="stylesheet" href="/css/site.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#workbench">Skip to the workbench</a>
+
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Risk Engine home">
+      <span class="brand-mark" aria-hidden="true">R/E</span>
+      <span>
+        <strong>Risk Engine</strong>
+        <small>Historical simulation lab</small>
+      </span>
+    </a>
+
+    <div class="api-state" aria-live="polite">
+      <span class="status-dot" id="api-status-dot" aria-hidden="true"></span>
+      <span id="api-status-text">Checking API</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">C# · .NET 10 · PORTFOLIO RISK</p>
+        <h1 id="page-title">Turn a portfolio into a <em>loss distribution.</em></h1>
+        <p class="hero-intro">
+          Build a long/short book, replay historical returns, and inspect Value at
+          Risk and Expected Shortfall through the real ASP.NET Core API.
+        </p>
+        <div class="hero-actions">
+          <button class="button button-primary" id="load-sample-button" type="button">
+            Load the guided example
+            <span aria-hidden="true">↘</span>
+          </button>
+          <a class="text-link" href="#concepts">Learn the model first</a>
+        </div>
+      </div>
+
+      <aside class="method-card" aria-label="Current calculation methodology">
+        <div class="method-card-topline">
+          <span>Methodology</span>
+          <span class="live-badge">LEARNING MODEL</span>
+        </div>
+        <strong>Historical simulation</strong>
+        <p>Current holdings × observed daily returns</p>
+        <dl>
+          <div>
+            <dt>Tail rule</dt>
+            <dd>Nearest rank</dd>
+          </div>
+          <div>
+            <dt>Horizon</dt>
+            <dd>One period</dd>
+          </div>
+          <div>
+            <dt>Pricing</dt>
+            <dd>Linear P&amp;L</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+
+    <ol class="journey" aria-label="Risk calculation workflow">
+      <li class="journey-step is-current" data-journey-step="portfolio">
+        <span>01</span>
+        <div>
+          <strong>Create the book</strong>
+          <small>Define signed exposures</small>
+        </div>
+      </li>
+      <li class="journey-connector" aria-hidden="true"></li>
+      <li class="journey-step" data-journey-step="scenarios">
+        <span>02</span>
+        <div>
+          <strong>Replay history</strong>
+          <small>Apply coherent returns</small>
+        </div>
+      </li>
+      <li class="journey-connector" aria-hidden="true"></li>
+      <li class="journey-step" data-journey-step="report">
+        <span>03</span>
+        <div>
+          <strong>Read the tail</strong>
+          <small>Interpret VaR and ES</small>
+        </div>
+      </li>
+    </ol>
+
+    <div class="alert" id="error-alert" role="alert" hidden>
+      <div>
+        <strong id="error-title">The request could not be completed.</strong>
+        <p id="error-message"></p>
+        <ul id="error-details"></ul>
+      </div>
+      <button class="icon-button" id="dismiss-error-button" type="button" aria-label="Dismiss error">
+        ×
+      </button>
+    </div>
+
+    <section class="workbench" id="workbench" aria-label="Risk workbench">
+      <article class="panel portfolio-panel">
+        <header class="panel-header">
+          <div>
+            <p class="step-label">STEP 01 / PORTFOLIO</p>
+            <h2>Build the trading book</h2>
+          </div>
+          <span class="panel-state" id="portfolio-panel-state">Draft</span>
+        </header>
+
+        <form id="portfolio-form">
+          <div class="form-grid form-grid-two">
+            <label class="field">
+              <span>Portfolio name</span>
+              <input
+                id="portfolio-name"
+                name="portfolioName"
+                type="text"
+                value="Learning Book"
+                maxlength="100"
+                autocomplete="off"
+                required>
+            </label>
+            <label class="field">
+              <span>Base currency</span>
+              <input
+                id="base-currency"
+                name="baseCurrency"
+                type="text"
+                value="USD"
+                minlength="3"
+                maxlength="3"
+                autocapitalize="characters"
+                autocomplete="off"
+                required>
+            </label>
+          </div>
+
+          <fieldset class="positions-fieldset">
+            <legend>Positions</legend>
+            <p class="field-help">
+              Use a positive quantity for a long and a negative quantity for a short.
+            </p>
+
+            <div class="position-column-labels" aria-hidden="true">
+              <span>Instrument</span>
+              <span>Quantity</span>
+              <span>Price</span>
+              <span></span>
+            </div>
+            <div class="position-list" id="position-list"></div>
+
+            <button class="button button-quiet" id="add-position-button" type="button">
+              <span aria-hidden="true">＋</span>
+              Add position
+            </button>
+          </fieldset>
+
+          <div class="form-actions">
+            <p>
+              This calls <code>POST /api/v1/portfolios</code> and stores the result
+              in the process-local repository.
+            </p>
+            <button class="button button-primary" id="create-portfolio-button" type="submit">
+              Create portfolio
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </form>
+
+        <section class="portfolio-summary" id="portfolio-summary" aria-live="polite" hidden>
+          <div class="summary-heading">
+            <div>
+              <p>ACTIVE PORTFOLIO</p>
+              <h3 id="summary-name"></h3>
+            </div>
+            <button class="button button-quiet button-small" id="edit-portfolio-button" type="button">
+              Create another
+            </button>
+          </div>
+
+          <div class="summary-values">
+            <div>
+              <span>Net market value</span>
+              <strong id="summary-net-value"></strong>
+            </div>
+            <div>
+              <span>Gross exposure</span>
+              <strong id="summary-gross-exposure"></strong>
+            </div>
+          </div>
+
+          <div class="position-chips" id="position-chips" aria-label="Portfolio positions"></div>
+          <p class="technical-id">
+            <span>Portfolio ID</span>
+            <code id="summary-id"></code>
+          </p>
+        </section>
+      </article>
+
+      <article class="panel scenarios-panel">
+        <header class="panel-header">
+          <div>
+            <p class="step-label">STEP 02 / SCENARIOS</p>
+            <h2>Replay historical moves</h2>
+          </div>
+          <span class="panel-state" id="scenario-panel-state">Locked</span>
+        </header>
+
+        <div class="locked-state" id="risk-locked-state">
+          <span aria-hidden="true">01</span>
+          <h3>Create a portfolio first</h3>
+          <p>The scenario matrix will adapt to the instruments in your active book.</p>
+        </div>
+
+        <form id="risk-form" hidden>
+          <div class="risk-settings">
+            <label class="field compact-field">
+              <span>Confidence level</span>
+              <span class="input-suffix">
+                <input
+                  id="confidence-level"
+                  name="confidenceLevel"
+                  type="number"
+                  value="80"
+                  min="50"
+                  max="99.99"
+                  step="0.01"
+                  required>
+                <span>%</span>
+              </span>
+            </label>
+            <div class="setting-note">
+              <span>Quantile</span>
+              <strong>Nearest rank</strong>
+            </div>
+            <div class="setting-note">
+              <span>Scenario type</span>
+              <strong>Simple return</strong>
+            </div>
+          </div>
+
+          <div class="scenario-heading">
+            <div>
+              <h3>Return matrix</h3>
+              <p>Enter decimal returns: <code>-0.04</code> means a 4% fall.</p>
+            </div>
+            <button class="button button-quiet button-small" id="add-scenario-button" type="button">
+              <span aria-hidden="true">＋</span>
+              Add date
+            </button>
+          </div>
+
+          <div class="table-scroll">
+            <table class="input-table" id="scenario-table">
+              <caption class="visually-hidden">
+                Historical dates and returns for each portfolio instrument
+              </caption>
+              <thead id="scenario-table-head"></thead>
+              <tbody id="scenario-table-body"></tbody>
+            </table>
+          </div>
+
+          <div class="form-actions">
+            <p>
+              The API maps these values into validated domain scenarios before
+              invoking the risk calculator.
+            </p>
+            <button class="button button-accent" id="calculate-risk-button" type="submit">
+              Calculate risk
+              <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </form>
+      </article>
+    </section>
+
+    <section class="report" id="risk-report" aria-labelledby="report-title" hidden>
+      <header class="report-header">
+        <div>
+          <p class="step-label">STEP 03 / RISK REPORT</p>
+          <h2 id="report-title">The loss distribution</h2>
+          <p id="report-subtitle"></p>
+        </div>
+        <div class="report-stamp">
+          <span>Calculated</span>
+          <strong id="report-time"></strong>
+        </div>
+      </header>
+
+      <div class="metric-grid">
+        <article class="metric-card metric-card-primary">
+          <span>Value at Risk</span>
+          <strong id="metric-var"></strong>
+          <p id="metric-var-note"></p>
+        </article>
+        <article class="metric-card">
+          <span>Expected Shortfall</span>
+          <strong id="metric-es"></strong>
+          <p>Average loss in the modeled tail</p>
+        </article>
+        <article class="metric-card">
+          <span>Worst observed loss</span>
+          <strong id="metric-worst"></strong>
+          <p>Largest loss in this scenario window</p>
+        </article>
+        <article class="metric-card">
+          <span>Daily P&amp;L volatility</span>
+          <strong id="metric-volatility"></strong>
+          <p id="metric-annualized"></p>
+        </article>
+      </div>
+
+      <div class="report-grid">
+        <article class="chart-card">
+          <div class="card-heading">
+            <div>
+              <p>P&amp;L BY SCENARIO</p>
+              <h3>Where gains end and losses begin</h3>
+            </div>
+            <div class="chart-legend" aria-hidden="true">
+              <span><i class="legend-profit"></i> Profit</span>
+              <span><i class="legend-loss"></i> Loss</span>
+            </div>
+          </div>
+          <p class="visually-hidden" id="chart-description"></p>
+          <div
+            class="pnl-chart"
+            id="pnl-chart"
+            role="img"
+            aria-labelledby="chart-description">
+          </div>
+        </article>
+
+        <aside class="interpretation-card">
+          <p>HOW TO READ THIS</p>
+          <h3>VaR is a threshold, not a maximum.</h3>
+          <p id="interpretation-copy"></p>
+          <div class="formula">
+            <span>Loss</span>
+            <strong>= − P&amp;L</strong>
+          </div>
+          <div class="formula">
+            <span>VaR rank</span>
+            <strong>⌈ confidence × N ⌉</strong>
+          </div>
+        </aside>
+      </div>
+
+      <article class="results-table-card">
+        <div class="card-heading">
+          <div>
+            <p>AUDITABLE DETAIL</p>
+            <h3>Scenario results</h3>
+          </div>
+          <span id="result-count"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="result-table">
+            <caption class="visually-hidden">
+              Calculated profit and loss for every historical scenario
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">As-of date</th>
+                <th scope="col">Profit &amp; loss</th>
+                <th scope="col">Loss</th>
+                <th scope="col">Outcome</th>
+              </tr>
+            </thead>
+            <tbody id="result-table-body"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="concepts" id="concepts" aria-labelledby="concepts-title">
+      <header>
+        <p class="eyebrow">READ THE CODE, THEN CHANGE IT</p>
+        <h2 id="concepts-title">Three boundaries to notice</h2>
+      </header>
+      <div class="concept-grid">
+        <article>
+          <span>01 / HTTP</span>
+          <h3>The browser speaks contracts</h3>
+          <p>
+            Forms become JSON request records. Problem Details returns predictable
+            validation errors without exposing internal exceptions.
+          </p>
+          <code>wwwroot/js → Controller</code>
+        </article>
+        <article>
+          <span>02 / APPLICATION</span>
+          <h3>Handlers coordinate the use case</h3>
+          <p>
+            The controller maps and delegates. Handlers load the portfolio, create
+            domain inputs, invoke policy, and map the result.
+          </p>
+          <code>Controller → Handler → Port</code>
+        </article>
+        <article>
+          <span>03 / DOMAIN</span>
+          <h3>The model protects the math</h3>
+          <p>
+            Value objects normalize IDs, aggregates protect invariants, and the pure
+            calculator has no dependency on HTTP or storage.
+          </p>
+          <code>Portfolio + Scenarios → Report</code>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>
+      Educational implementation only. Not suitable for trading, limits, capital,
+      or regulatory reporting.
+    </p>
+    <div>
+      <a href="/health">Health</a>
+      <a href="/openapi/v1.json">OpenAPI</a>
+      <span>.NET 10</span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

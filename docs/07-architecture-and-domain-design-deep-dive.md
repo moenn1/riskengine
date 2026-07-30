@@ -11,7 +11,7 @@ storage technology.
 ## 1. Start with the dependency rule
 
 Open the
-[component dependency diagram](diagrams/01-component-dependencies.puml) while
+[component dependency diagram](06-mermaid-diagrams.md#1-compile-time-component-dependencies) while
 reading this section.
 
 The production dependency graph is:
@@ -356,7 +356,8 @@ every enterprise system needs exactly four assemblies.
 
 ## 5. Domain model vocabulary in this project
 
-Use the [domain model diagram](diagrams/06-domain-model.puml) with this section.
+Use the [domain model diagram](06-mermaid-diagrams.md#6-domain-model) with this
+section.
 
 ## 5.1 Value object
 
@@ -713,7 +714,7 @@ language boundary; it does not automatically mean “microservice.”
 ## 12. Trace one complete risk request
 
 Use the
-[risk sequence diagram](diagrams/03-risk-request-sequence.puml), then follow
+[risk sequence diagram](06-mermaid-diagrams.md#3-risk-request-sequence), then follow
 these files:
 
 1. `Contracts/PortfolioRequests.cs` defines accepted JSON.
