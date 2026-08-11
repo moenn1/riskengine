@@ -1,0 +1,5 @@
+{
+  "dotnet.defaultSolution": "RiskEngine.sln",
+  "dotnet.preferCSharpExtension": false,
+  "dotnetAcquisitionExtension.sharedExistingDotnetPath": "/usr/local/share/dotnet/dotnet"
+}

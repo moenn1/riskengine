@@ -72,7 +72,7 @@ public sealed partial class PortfoliosController(
                     position.Price))
                 .ToArray());
 
-        var result = await createPortfolio.HandleAsync(command, cancellationToken);
+        PortfolioDto result = await createPortfolio.HandleAsync(command, cancellationToken);
 
         LogPortfolioCreated(logger, result.Id, result.Positions.Count);
 
