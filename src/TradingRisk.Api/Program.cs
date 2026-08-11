@@ -2,7 +2,6 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using TradingRisk.Api.ErrorHandling;
 using TradingRisk.Api.Options;
-using TradingRisk.Application.Abstractions;
 using TradingRisk.Application.Portfolios;
 using TradingRisk.Application.Risk;
 using TradingRisk.Domain.Risk;
@@ -19,9 +18,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Registration describes what the service provider can create; it does not yet build it.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services
+    .AddHealthChecks()
+    // The existing /health endpoint now verifies that EF can connect to SQLite.
+    .AddDbContextCheck<RiskDbContext>("sqlite");
 
 builder.Services
     .AddOptions<RiskApiOptions>()
@@ -50,18 +54,30 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-// The in-memory repository must be a singleton so data survives across HTTP requests.
-// Handlers are scoped, matching the usual lifetime of a web request.
-builder.Services.AddSingleton<IPortfolioRepository, InMemoryPortfolioRepository>();
+var riskDatabaseConnection = builder.Configuration.GetConnectionString("RiskDatabase")
+    ?? throw new InvalidOperationException(
+        "ConnectionStrings:RiskDatabase is required.");
+
+// AddDbContext and the EF repositories are scoped by request. This is the .NET analogue
+// of a transaction-scoped JPA EntityManager/repository graph.
+builder.Services.AddTradingRiskPersistence(
+    riskDatabaseConnection,
+    builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<IRiskCalculator, HistoricalSimulationRiskCalculator>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<CreatePortfolioHandler>();
 builder.Services.AddScoped<GetPortfolioHandler>();
+builder.Services.AddScoped<SearchPortfoliosHandler>();
+builder.Services.AddScoped<GetPortfolioStatisticsHandler>();
 builder.Services.AddScoped<CalculatePortfolioRiskHandler>();
 
 // Build creates the root service provider and WebApplication. app.Run below, not Build,
 // starts Kestrel and waits for shutdown.
 var app = builder.Build();
+
+// Convenient for this one-process learning project. A production deployment should run
+// reviewed migration SQL or a migration bundle before starting application replicas.
+await app.Services.MigrateTradingRiskDatabaseAsync();
 
 // Middleware runs in registration order on the request and unwinds in reverse order for
 // the response. Error handling is early so it can catch failures from later components.
@@ -83,8 +99,11 @@ app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
-    // This maps an OpenAPI JSON document, not an interactive Swagger UI.
+    // The official generator serves the machine-readable document; Swashbuckle adds a
+    // convenient interactive learning UI at /swagger without exposing it in Production.
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 // Endpoint mappings are terminal destinations selected by routing.

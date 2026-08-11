@@ -1,16 +1,22 @@
 <Project>
-    <!--
+  <!--
       Central Package Management keeps versions in one file. Individual .csproj
       files name packages but normally omit Version attributes.
     -->
-    <PropertyGroup>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
-        <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-        <!-- Direct patched version used instead of the vulnerable minimum transitive version. -->
-        <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0" />
-        <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
-    </ItemGroup>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
+    <!-- Overrides EF's vulnerable minimum native SQLite bundle (GHSA-2m69-gcr7-jv3q). -->
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <!-- Direct patched version used instead of the vulnerable minimum transitive version. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.11.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
+  </ItemGroup>
 </Project>

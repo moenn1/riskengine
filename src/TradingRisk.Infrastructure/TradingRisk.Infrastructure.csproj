@@ -1,5 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
+        <!-- The provider supplies EF Core plus the native SQLite database engine. -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+        <!-- Explicit patched native bundle overrides EF's vulnerable transitive minimum. -->
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+        <!-- Design is needed by `dotnet ef`; PrivateAssets keeps tooling out of consumers. -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
         <!-- Infrastructure implements Application-owned ports using Domain objects. -->
         <ProjectReference Include="../TradingRisk.Application/TradingRisk.Application.csproj" />
         <ProjectReference Include="../TradingRisk.Domain/TradingRisk.Domain.csproj" />

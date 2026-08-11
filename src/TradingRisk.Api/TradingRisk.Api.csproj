@@ -2,8 +2,15 @@
     <ItemGroup>
         <!-- Package versions come from Directory.Packages.props. -->
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+        <!-- dotnet-ef loads the startup project to discover hosting configuration. -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <!-- Explicitly pins a patched 2.x line instead of the vulnerable transitive 2.0.0. -->
         <PackageReference Include="Microsoft.OpenApi" />
+        <PackageReference Include="Swashbuckle.AspNetCore" />
     </ItemGroup>
     <ItemGroup>
         <!-- API is the composition root, so it sees ports, domain policy, and adapters. -->

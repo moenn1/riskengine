@@ -31,6 +31,12 @@ Content-Type: application/json
 ### Read the portfolio
 GET {{host}}/api/v1/portfolios/{{portfolioId}}
 
+### Search with LINQ translated by EF Core (Where + Any + Count + paging)
+GET {{host}}/api/v1/portfolios?name=Learning&baseCurrency=USD&instrumentId=AAPL&minimumPositionCount=2&page=1&pageSize=10
+
+### Grouped projection (GroupBy + Count + SelectMany)
+GET {{host}}/api/v1/portfolios/statistics/by-currency
+
 ### Calculate 80% historical VaR and Expected Shortfall
 POST {{host}}/api/v1/portfolios/{{portfolioId}}/risk
 Content-Type: application/json

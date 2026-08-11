@@ -5,14 +5,14 @@ using TradingRisk.Domain.Portfolios;
 namespace TradingRisk.Infrastructure.Persistence;
 
 /// <summary>
-/// A process-local adapter used for the first learning milestone.
-/// It deliberately satisfies the same port that a later EF Core adapter will implement.
-/// Data disappears when the API process stops.
+/// A process-local working fake retained for focused Application tests.
+/// Production DI selects SqlitePortfolioRepository; this adapter stays useful when a test
+/// needs deterministic port behavior without exercising SQL translation or mapping.
 /// </summary>
 public sealed class InMemoryPortfolioRepository : IPortfolioRepository
 {
-    // A singleton repository is called concurrently by requests. ConcurrentDictionary
-    // protects dictionary operations, while immutable Portfolio objects protect values.
+    // The fake is safe even if a test/composition shares it concurrently. The concurrent
+    // collection protects dictionary operations; immutable Portfolio objects protect values.
     private readonly ConcurrentDictionary<PortfolioId, Portfolio> _portfolios = new();
 
     public Task AddAsync(
@@ -28,7 +28,7 @@ public sealed class InMemoryPortfolioRepository : IPortfolioRepository
                 $"Portfolio '{portfolio.Id}' already exists.");
         }
 
-        // The port is async for future I/O; this in-memory adapter has no asynchronous work.
+        // The port models real database I/O; this fake can complete synchronously.
         return Task.CompletedTask;
     }
 

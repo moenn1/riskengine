@@ -329,8 +329,7 @@ Do not abstract deterministic, pure platform operations merely for uniformity.
 The API test begins:
 
 ```csharp
-await using var factory = new WebApplicationFactory<Program>()
-    .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+using var factory = new SqliteWebApplicationFactory();
 using var client = factory.CreateClient();
 ```
 
@@ -339,12 +338,17 @@ using var client = factory.CreateClient();
 1. locates the API entry point;
 2. boots the real `Program.cs`;
 3. constructs the real DI container and middleware;
-4. hosts it with an in-memory `TestServer`;
+4. hosts its HTTP pipeline with an in-process `TestServer`;
 5. supplies an `HttpClient` that sends requests to that server.
 
 It does not bind a public TCP port. JSON serialization, routing, model binding,
-controllers, handlers, the in-memory adapter, default-file rewriting, and
-static-file middleware still run.
+controllers, handlers, the real EF adapter, temporary SQLite database,
+default-file rewriting, and static-file middleware still run.
+
+The word “in-process” describes the HTTP transport; the persistence provider is
+real relational SQLite. `SqliteWebApplicationFactory` removes the production
+`RiskDbContext` options and adds a unique temporary database per host, so tests
+cannot read or pollute a developer's `App_Data` file.
 
 ### Why `public partial class Program` exists
 
@@ -358,10 +362,11 @@ public partial class Program;
 adds a visible declaration for `WebApplicationFactory<Program>` without
 rewriting startup into a traditional `Main` method.
 
-### Why `await using`
+### Why `using`
 
-`WebApplicationFactory` supports asynchronous disposal. `await using` ensures
-the test host and its resources shut down even if an assertion fails.
+`SqliteWebApplicationFactory` overrides disposal to stop the test host and then
+remove the exact temporary database and SQLite journal files even if an
+assertion fails.
 
 `HttpClient` and each `HttpResponseMessage` use ordinary `using` so their
 disposable resources are released deterministically.
@@ -402,8 +407,9 @@ var portfolio =
 
 deserializes the response.
 
-The returned portfolio ID is used in the risk route. This proves that the
-singleton repository survives between two requests inside one app instance.
+The returned portfolio ID is used in the risk route. This proves that the first
+request commits to SQLite and a later request scope, with a new scoped
+`RiskDbContext`, can reconstruct the aggregate.
 
 The test covers:
 
@@ -413,7 +419,7 @@ JSON serialization
   -> model binding and validation
   -> controller activation through DI
   -> create handler
-  -> singleton storage
+  -> EF Core translation and SQLite storage
   -> risk handler
   -> risk calculator
   -> JSON response
@@ -522,9 +528,11 @@ deployable ASP.NET Core application.
 
 ### Infrastructure integration
 
-Not present yet. A future EF repository test should use the real supported
-database engine and verify mapping, constraints, transactions, concurrency, and
-queries.
+`SqlitePortfolioRepositoryTests` applies the real migration to a unique
+temporary SQLite file. It proves cross-context persistence and exercises
+translated filtering, `Any`, navigation `Count`, deterministic paging, split
+relationship loading, and grouped projections. PostgreSQL provider tests remain
+a later step for production-provider semantics.
 
 ### Contract
 
@@ -573,10 +581,10 @@ High-value missing tests include:
 Add an architecture test or CI check if project-reference rules become easier
 to violate as the solution grows.
 
-## 19. Tests for future persistence
+## 19. Persistence tests: current and next
 
-An EF Core repository should be tested against the actual database type used
-in production. EF's in-memory provider does not reproduce relational SQL,
+The current EF repository is tested against SQLite, the provider used by this
+application. EF's in-memory provider does not reproduce relational SQL,
 constraints, transactions, indexes, collation, or provider-specific behavior.
 
 Test:

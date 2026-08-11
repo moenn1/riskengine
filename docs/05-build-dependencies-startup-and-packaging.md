@@ -344,9 +344,9 @@ declares object dependencies, but says nothing about which implementations to
 create. `Program.cs` supplies the runtime mapping:
 
 ```csharp
-builder.Services.AddSingleton<
-    IPortfolioRepository,
-    InMemoryPortfolioRepository>();
+builder.Services.AddTradingRiskPersistence(
+    riskDatabaseConnection,
+    builder.Environment.ContentRootPath);
 
 builder.Services.AddSingleton<
     IRiskCalculator,
@@ -366,7 +366,8 @@ Api -> Infrastructure -> Application + Domain
 runtime object graph for one controller:
 PortfoliosController
   -> CalculatePortfolioRiskHandler
-      -> IPortfolioRepository -> InMemoryPortfolioRepository
+      -> IPortfolioRepository -> SqlitePortfolioRepository (scoped)
+          -> RiskDbContext (scoped) -> SQLite
       -> IRiskCalculator -> HistoricalSimulationRiskCalculator
       -> TimeProvider -> TimeProvider.System
 ```
@@ -791,9 +792,12 @@ service descriptors, not the final object container.
 ```csharp
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<RiskDbContext>("sqlite");
 ```
 
 Each `Add...` method is an extension method that adds multiple related service
@@ -823,9 +827,9 @@ the first request resolves the options.
 ### Stage 4: register application services and implementations
 
 ```csharp
-builder.Services.AddSingleton<
-    IPortfolioRepository,
-    InMemoryPortfolioRepository>();
+builder.Services.AddTradingRiskPersistence(
+    riskDatabaseConnection,
+    builder.Environment.ContentRootPath);
 builder.Services.AddSingleton<
     IRiskCalculator,
     HistoricalSimulationRiskCalculator>();
@@ -838,8 +842,8 @@ This is the explicit equivalent of Spring bean definitions/component discovery.
 The generic parameters mean:
 
 ```text
-when a constructor asks for IPortfolioRepository,
-create/return InMemoryPortfolioRepository according to singleton lifetime
+when a constructor asks for IPortfolioRepository or IPortfolioQueries,
+return the scoped SqlitePortfolioRepository registered by the extension method
 ```
 
 ### Stage 5: build the application
@@ -861,7 +865,18 @@ configures how requests flow.
 This is conceptually related to refreshing/building a Spring
 `ApplicationContext`, although the lifecycle and extension mechanisms differ.
 
-### Stage 6: configure middleware
+### Stage 6: apply local migrations
+
+```csharp
+await app.Services.MigrateTradingRiskDatabaseAsync();
+```
+
+This creates a temporary scope because `RiskDbContext` is scoped, then applies
+checked-in EF migrations before Kestrel starts. It is convenient for this
+single-process learning app. Production replicas should normally receive a
+schema migrated by a controlled deployment step; see the EF deep dive.
+
+### Stage 7: configure middleware
 
 ```csharp
 app.UseExceptionHandler();
@@ -889,7 +904,7 @@ Do not assume a servlet filter and middleware have identical lifecycle or DI
 rules. Conventional middleware is constructed for application lifetime, so a
 scoped service should not be captured in its constructor.
 
-### Stage 7: map endpoints
+### Stage 8: map endpoints
 
 ```csharp
 app.MapHealthChecks("/health");
@@ -902,7 +917,7 @@ attributes on controllers provide route/action metadata.
 `AddControllers()` registers MVC services; `MapControllers()` exposes the
 attribute-routed actions as endpoints. Both are needed.
 
-### Stage 8: run
+### Stage 9: run
 
 ```csharp
 app.Run();
@@ -981,18 +996,22 @@ convention, but understand the explicit model first.
 Examples from this project:
 
 ```csharp
-AddSingleton<IPortfolioRepository, InMemoryPortfolioRepository>();
+AddDbContext<RiskDbContext>(options => options.UseSqlite(connectionString));
+AddScoped<SqlitePortfolioRepository>();
 AddSingleton<IRiskCalculator, HistoricalSimulationRiskCalculator>();
 AddScoped<CalculatePortfolioRiskHandler>();
 ```
 
 Why:
 
-- Repository is singleton so in-memory data survives between requests. It uses
-  a concurrent collection and stores immutable aggregates.
+- `RiskDbContext` and its repository are one scoped unit of work per request.
+  `DbContext` tracks mutable state and is not thread-safe.
 - Calculator is stateless and thread-safe.
-- Handler is per request and is ready to depend on a future scoped EF Core
-  `DbContext`.
+- Handler is per request and can safely consume the scoped repository/context.
+
+The persistence registration aliases `IPortfolioRepository` and
+`IPortfolioQueries` to the same `SqlitePortfolioRepository` instance inside a
+scope. See [the EF Core/SQLite/LINQ deep dive](12-ef-core-sqlite-linq-deep-dive.md).
 
 ### Captive dependency error
 

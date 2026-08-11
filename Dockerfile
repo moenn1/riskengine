@@ -21,6 +21,9 @@ RUN dotnet publish src/TradingRisk.Api/TradingRisk.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+# SQLite needs a writable directory for the database, journal, and WAL files.
+RUN mkdir -p /app/App_Data && chown $APP_UID /app/App_Data
+VOLUME ["/app/App_Data"]
 # APP_UID is defined by Microsoft's Linux image; the service does not run as root.
 USER $APP_UID
 EXPOSE 8080

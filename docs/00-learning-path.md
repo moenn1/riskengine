@@ -80,13 +80,30 @@ controller and browser do not calculate risk themselves.
 
 ## Milestone 2 — durable persistence
 
-Build:
+Status: the SQLite/EF Core learning foundation is implemented. The production
+database transition remains an exercise.
+
+Implemented:
+
+- an embedded SQLite database with a configurable connection string;
+- an EF Core `RiskDbContext` scoped to each request;
+- separate persistence entities and Fluent API mappings;
+- an EF implementation of `IPortfolioRepository`;
+- an Application-owned query port with filter, `Any`, `Count`, ordering,
+  pagination, relationship loading, and grouped projections;
+- a checked-in initial migration and repository-local `dotnet-ef` tool;
+- database-aware health checks and isolated temporary-SQLite tests.
+
+Read:
+
+- [EF Core, SQLite, and LINQ deep dive](12-ef-core-sqlite-linq-deep-dive.md);
+- [persistence diagrams](06-mermaid-diagrams.md#8-ef-core-persistence);
+- the persistence sections of the
+  [production-scale deep dive](10-production-scale-dotnet-deep-dive.md).
+
+Build next:
 
 - PostgreSQL in `compose.yaml`;
-- an EF Core `RiskDbContext`;
-- entity configurations rather than large data-annotation models;
-- migrations;
-- an EF implementation of `IPortfolioRepository`;
 - optimistic concurrency using a version column;
 - transaction boundaries and integration tests with a real disposable database.
 
@@ -104,9 +121,9 @@ risk calculation runs with immutable “as-of” timestamps.
 Exit test: two concurrent updates cannot silently overwrite one another, and a
 calculation can be reproduced from persisted inputs.
 
-Use the persistence and concurrency sections of the
-[production-scale .NET deep dive](10-production-scale-dotnet-deep-dive.md) as
-the design reference.
+Use SQLite to learn the APIs, then measure and test the actual provider used by
+your team: providers differ in types, SQL translation, locking, migrations, and
+performance.
 
 ## Milestone 3 — market data ingestion and data quality
 

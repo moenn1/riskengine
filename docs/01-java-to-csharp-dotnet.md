@@ -586,9 +586,9 @@ The singleton outlives an HTTP request, while the scoped dependency (often a
 future `DbContext`) does not.
 
 - Singleton: one instance for the process. Use for immutable, thread-safe,
-  stateless services and the temporary in-memory repository.
-- Scoped: one instance per HTTP request. Use for use-case handlers and normally
-  `DbContext`.
+  stateless services such as the risk calculator and system clock.
+- Scoped: one instance per HTTP request. This project uses it for handlers, the
+  EF repository, and `RiskDbContext`.
 - Transient: a new instance each resolution. Use for cheap, stateless objects
   when scoped identity is unnecessary.
 

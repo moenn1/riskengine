@@ -797,14 +797,17 @@ protection, or a substitute for bounded work inside the application.
 This project registers and maps:
 
 ```csharp
-builder.Services.AddHealthChecks();
+builder.Services
+    .AddHealthChecks()
+    .AddDbContextCheck<RiskDbContext>("sqlite");
 app.MapHealthChecks("/health");
 ```
 
-No dependency checks are registered, so this endpoint proves only that the
-process and pipeline can answer. It is essentially a liveness-style baseline.
+The registered EF check opens the scoped context and verifies SQLite
+connectivity. It is stronger than a process-only check but still does not prove
+that every migration, query, or downstream dependency works.
 
-When a database is added, distinguish:
+In a production deployment, distinguish:
 
 - **liveness**: should the orchestrator restart this process?
 - **readiness**: should traffic be sent to this instance?
@@ -817,10 +820,14 @@ queries can overload the dependency they are meant to observe.
 
 ```csharp
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 ```
 
@@ -830,9 +837,15 @@ The JSON document is available only in Development at:
 /openapi/v1.json
 ```
 
-This is the machine-readable OpenAPI description, not an interactive Swagger UI.
-The controller's route, parameter, response, and `ProducesResponseType`
-metadata contribute to the document.
+The official OpenAPI endpoint is the machine-readable contract. Swashbuckle
+also exposes an interactive learning UI at `/swagger`; its own generated JSON
+normally lives at `/swagger/v1/swagger.json`. Both are Development-only. The
+controller's route, parameter, response, and `ProducesResponseType` metadata
+contribute to these descriptions.
+
+All `builder.Services.Add...` calls must occur before `builder.Build()`. Calling
+`AddSwaggerGen` afterward mutates the old descriptor list but cannot add
+services to the already-built provider.
 
 OpenAPI is a contract aid, not proof that behavior is backward compatible.
 Review:
@@ -862,11 +875,10 @@ controller -> handler -> repository
 
 Cancellation is cooperative. Passing a token does nothing unless the called
 operation observes it. EF Core and `HttpClient` asynchronous APIs usually
-accept tokens. The in-memory repository explicitly calls:
-
-```csharp
-cancellationToken.ThrowIfCancellationRequested();
-```
+accept tokens. The SQLite repository passes it into `SaveChangesAsync`,
+`SingleOrDefaultAsync`, `CountAsync`, and `ToArrayAsync`. The focused in-memory
+test fake explicitly calls `ThrowIfCancellationRequested` because it has no
+real asynchronous I/O.
 
 The current calculation is fast and synchronous. For a large CPU-bound loop,
 periodically check cancellation at a sensible granularity:
@@ -1049,9 +1061,12 @@ Rider to run the fuller request set.
 
 ### Created data disappears
 
-- The adapter is process-local.
-- Restarting the process creates a new singleton repository.
-- Multiple replicas would each have different memory.
+- Confirm which `ConnectionStrings:RiskDatabase` value is active.
+- Confirm the SQLite `App_Data` directory is writable and persistent.
+- In a container, mount `/app/App_Data`; a container writable layer is
+  disposable.
+- Multiple replicas with separate local files still have different data; use a
+  shared production database for horizontal scaling.
 
 ### HTTP redirects unexpectedly
 

@@ -9,3 +9,7 @@ artifacts/
 *.suo
 *.DotSettings.user
 .DS_Store
+# Local SQLite state is runtime data, not source. Keep migrations in Git instead.
+**/App_Data/*.db
+**/App_Data/*.db-shm
+**/App_Data/*.db-wal

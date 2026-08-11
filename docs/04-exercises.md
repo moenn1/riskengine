@@ -19,9 +19,11 @@ Requirements:
 Think about: should `Portfolio` stay immutable and return a new version, or
 become a carefully encapsulated mutable aggregate?
 
-## 2. Replace process memory with PostgreSQL and EF Core
+## 2. Replace embedded SQLite with PostgreSQL
 
-Implement a second `IPortfolioRepository` adapter.
+Adapt the implemented EF repository to the production-style PostgreSQL
+provider. Start by reading the SQLite/LINQ deep dive and preserve the
+Application ports.
 
 Requirements:
 
@@ -31,6 +33,7 @@ Requirements:
 - a transaction around aggregate writes;
 - integration tests against a real temporary PostgreSQL instance;
 - no EF Core types in Domain or Application.
+- deployment-managed migrations rather than per-replica startup migration.
 
 Measure query counts and inspect generated SQL. Demonstrate the difference
 between `IEnumerable<T>` and `IQueryable<T>`.

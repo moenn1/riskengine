@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using TradingRisk.Api.Contracts;
 using TradingRisk.Application.Portfolios;
 using TradingRisk.Application.Risk;
@@ -17,7 +15,7 @@ public sealed class PortfolioApiTests
 
         // This is an HTTP integration test of the ASP.NET Core static-file pipeline,
         // not a test that reads source files directly from disk.
-        await using var factory = CreateFactory();
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -45,6 +43,10 @@ public sealed class PortfolioApiTests
         var script = await scriptResponse.Content.ReadAsStringAsync(cancellationToken);
         Assert.Contains("async function submitPortfolio", script);
         Assert.Contains("async function submitRisk", script);
+
+        // The health check opens the scoped EF Core context and verifies SQLite connectivity.
+        using var healthResponse = await client.GetAsync("/health", cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, healthResponse.StatusCode);
     }
 
     [Fact]
@@ -54,7 +56,7 @@ public sealed class PortfolioApiTests
 
         // This boots the real Program.cs and middleware with an in-process TestServer;
         // no public TCP port is opened.
-        await using var factory = CreateFactory();
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
         var cancellationToken = TestContext.Current.CancellationToken;
 
@@ -75,8 +77,8 @@ public sealed class PortfolioApiTests
             cancellationToken);
         Assert.NotNull(portfolio);
 
-        // Reusing the returned ID also proves the singleton in-memory repository survives
-        // across two HTTP request scopes in this application instance.
+        // Reusing the returned ID across request scopes proves the first request committed
+        // the aggregate and a new scoped DbContext can reconstruct it from SQLite.
         using var riskResponse = await client.PostAsJsonAsync(
             $"/api/v1/portfolios/{portfolio.Id}/risk",
             new CalculateRiskRequest(
@@ -99,10 +101,61 @@ public sealed class PortfolioApiTests
         Assert.Equal(5, report.ScenarioCount);
     }
 
-    private static WebApplicationFactory<Program> CreateFactory()
+    [Fact]
+    public async Task SearchAndStatisticsExecuteDatabaseReadModels()
     {
-        return new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
+        DisableConfigurationReload();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var cancellationToken = TestContext.Current.CancellationToken;
+
+        await CreatePortfolioAsync(
+            client,
+            new CreatePortfolioRequest(
+                "Alpha book",
+                "USD",
+                [
+                    new CreatePositionRequest("AAPL", 10m, 200m),
+                    new CreatePositionRequest("MSFT", 5m, 400m)
+                ]),
+            cancellationToken);
+        await CreatePortfolioAsync(
+            client,
+            new CreatePortfolioRequest(
+                "Euro book",
+                "EUR",
+                [new CreatePositionRequest("SAP", 20m, 150m)]),
+            cancellationToken);
+
+        using var searchResponse = await client.GetAsync(
+            "/api/v1/portfolios?baseCurrency=usd&instrumentId=aapl" +
+            "&minimumPositionCount=2&page=1&pageSize=10",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, searchResponse.StatusCode);
+        var page = await searchResponse.Content
+            .ReadFromJsonAsync<PortfolioSearchPageDto>(cancellationToken);
+        Assert.NotNull(page);
+        Assert.Equal(1, page.TotalCount);
+        Assert.Equal("Alpha book", Assert.Single(page.Items).Name);
+
+        using var statisticsResponse = await client.GetAsync(
+            "/api/v1/portfolios/statistics/by-currency",
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, statisticsResponse.StatusCode);
+        var statistics = await statisticsResponse.Content
+            .ReadFromJsonAsync<PortfolioStatisticsDto>(cancellationToken);
+        Assert.NotNull(statistics);
+        Assert.Equal(2, statistics.PortfolioCount);
+        Assert.Equal(3, statistics.PositionCount);
+        Assert.Equal(["EUR", "USD"], statistics.ByCurrency
+            .Select(item => item.BaseCurrency)
+            .ToArray());
+    }
+
+    private static SqliteWebApplicationFactory CreateFactory()
+    {
+        return new SqliteWebApplicationFactory();
     }
 
     private static void DisableConfigurationReload()
@@ -126,5 +179,17 @@ public sealed class PortfolioApiTests
                 ["AAPL"] = aaplReturn,
                 ["MSFT"] = msftReturn
             });
+    }
+
+    private static async Task CreatePortfolioAsync(
+        HttpClient client,
+        CreatePortfolioRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/portfolios",
+            request,
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 }

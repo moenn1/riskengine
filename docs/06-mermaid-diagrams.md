@@ -16,6 +16,8 @@ explanation therefore change together in one reviewable file.
 | [DI lifetimes](#5-dependency-injection-lifetimes) | Which objects are shared between requests and which belong to one request? |
 | [Domain model](#6-domain-model) | How do portfolios, positions, scenarios, the calculator, and reports relate? |
 | [Browser UI flow](#7-browser-ui-flow) | How does the static browser workbench call the same ASP.NET Core API? |
+| [EF Core persistence](#8-ef-core-persistence) | How do domain objects cross the EF/SQLite boundary? |
+| [LINQ query execution](#9-linq-query-execution) | When does a composed LINQ expression become SQL and materialized objects? |
 
 ## 1. Compile-time component dependencies
 
@@ -36,7 +38,7 @@ flowchart TB
 
     Tests -. "HTTP integration tests" .-> Api
     Tests -. "handler tests" .-> Application
-    Tests -. "in-memory adapter" .-> Infrastructure
+    Tests -. "SQLite integration + fake adapter tests" .-> Infrastructure
     Tests -. "unit tests" .-> Domain
 
     classDef api fill:#dbeafe,stroke:#374151,color:#111827
@@ -81,16 +83,17 @@ flowchart TB
         D3["Create host,<br/>configuration and logging"]
         D4["Explicitly register services<br/>in builder.Services"]
         D5["builder.Build()<br/>creates service provider"]
-        D6["Configure middleware<br/>and mapped endpoints"]
-        D7["app.Run()<br/>starts Kestrel"]
-        D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7
+        D6["Create startup scope<br/>and apply EF migrations"]
+        D7["Configure middleware<br/>and mapped endpoints"]
+        D8["app.Run()<br/>starts Kestrel"]
+        D1 --> D2 --> D3 --> D4 --> D5 --> D6 --> D7 --> D8
     end
 
     J1 -. "entry point" .-> D1
     J3 -. "host and configuration" .-> D3
     J4 -. "dependency registration" .-> D4
     J5 -. "construct container" .-> D5
-    J6 -. "HTTP server" .-> D7
+    J6 -. "HTTP server" .-> D8
 ```
 
 Both platforms enter user code, collect configuration/logging, describe
@@ -102,7 +105,10 @@ configuration, and auto-configuration. This project registers application
 services explicitly in `builder.Services`.
 
 `builder.Build()` creates the configured application and root service provider;
-it does not start listening. `app.Run()` starts Kestrel and waits for shutdown.
+it does not start listening. This learning service then creates a scope and
+applies checked-in EF migrations. `app.Run()` starts Kestrel and waits for
+shutdown. A replicated production deployment should migrate in a controlled
+deployment step instead of making every replica race during startup.
 
 ## 3. Risk request sequence
 
@@ -112,7 +118,8 @@ sequenceDiagram
     participant Middleware as ASP.NET Core<br/>middleware
     participant Controller as PortfoliosController
     participant Handler as CalculatePortfolioRiskHandler
-    participant Repository as IPortfolioRepository<br/>(in-memory adapter)
+    participant Repository as IPortfolioRepository<br/>(SQLite EF adapter)
+    participant Database as SQLite database
     participant Calculator as HistoricalSimulation<br/>RiskCalculator
     participant Errors as ApiExceptionHandler
 
@@ -122,6 +129,8 @@ sequenceDiagram
     Controller->>Handler: HandleAsync(query, token)
     Handler->>Handler: Validate transport-neutral input
     Handler->>Repository: GetByIdAsync(PortfolioId, token)
+    Repository->>Database: SELECT portfolio + positions
+    Database-->>Repository: relational rows
     Repository-->>Handler: Portfolio or null
 
     alt Portfolio exists
@@ -212,50 +221,32 @@ uses `--no-restore` and `--no-build` so each failure belongs to one stage.
 ```mermaid
 flowchart LR
     Root["Root service provider<br/>created by builder.Build()"]
+    RequestA["Request A scope<br/>Controller A → Handler A<br/>→ Repository A → RiskDbContext A"]
+    RequestB["Request B scope<br/>Controller B → Handler B<br/>→ Repository B → RiskDbContext B"]
+    Calculator["Singleton<br/>HistoricalSimulationRiskCalculator"]
+    SystemTime["Singleton<br/>TimeProvider.System"]
 
-    subgraph ScopeA["Request A scope"]
-        ControllerA["PortfoliosController A"]
-        HandlerA["CalculatePortfolioRiskHandler A<br/>(scoped)"]
-        ControllerA --> HandlerA
-    end
-
-    subgraph ScopeB["Request B scope"]
-        ControllerB["PortfoliosController B"]
-        HandlerB["CalculatePortfolioRiskHandler B<br/>(scoped)"]
-        ControllerB --> HandlerB
-    end
-
-    subgraph Singletons["Singletons: one instance for the process"]
-        Repository["IPortfolioRepository<br/>→ InMemoryPortfolioRepository"]
-        Calculator["IRiskCalculator<br/>→ HistoricalSimulationRiskCalculator"]
-        Clock["TimeProvider.System"]
-    end
-
-    Root -->|"creates scope"| ControllerA
-    Root -->|"creates scope"| ControllerB
-    Root -->|"creates once"| Repository
+    Root -->|"creates scope"| RequestA
+    Root -->|"creates scope"| RequestB
     Root -->|"creates once"| Calculator
-    Root -->|"creates once"| Clock
-
-    HandlerA -->|"shared instance"| Repository
-    HandlerB -->|"same instance"| Repository
-    HandlerA -->|"shared stateless instance"| Calculator
-    HandlerB -->|"same instance"| Calculator
-    HandlerA --> Clock
-    HandlerB --> Clock
+    Root -->|"creates once"| SystemTime
+    RequestA -. "uses shared services" .-> Calculator
+    RequestB -. "uses same services" .-> Calculator
 ```
 
 The root provider owns singletons until shutdown. ASP.NET Core creates a scope
-for each request. A new scoped handler is used for each request, while both
-handlers share the process-wide repository, calculator, and clock.
+for each request. Each request gets its own handler, EF repository, and
+`DbContext`; both requests share the stateless calculator and system clock.
+The repository implements two Application ports, but both interfaces resolve
+to the same repository instance inside one scope.
 
-The repository's state must be thread-safe because it is shared. The calculator
-can be shared because it has no mutable state.
+`DbContext` is a short-lived unit of work and is not thread-safe. Do not share
+it between requests or run parallel operations through one instance. The
+calculator can be shared because it has no mutable state.
 
 Transient services, if registered, are created whenever resolved. A singleton
 must not capture a scoped service because that object could outlive the request
-that owns it. A future EF Core `DbContext` and repository should normally be
-scoped.
+that owns it.
 
 ## 6. Domain model
 
@@ -366,37 +357,37 @@ specification.
 ```mermaid
 sequenceDiagram
     actor Learner
-    participant Browser as Browser workbench<br/>HTML + CSS + JavaScript
-    participant Static as Static-file middleware
-    participant Health as Health endpoint
-    participant Controller as PortfoliosController
-    participant Handler as Application handlers
-    participant Repository as Portfolio repository
-    participant Calculator as Risk calculator
+    participant Ui as Browser workbench<br/>HTML + CSS + JavaScript
+    participant StaticFiles as Static-file middleware
+    participant HealthEndpoint as Health endpoint
+    participant ApiController as PortfoliosController
+    participant AppHandlers as Application handlers
+    participant PortfolioStore as Portfolio repository
+    participant RiskService as Risk calculator
 
-    Learner->>Browser: Open /
-    Browser->>Static: GET /index.html, /css/site.css, /js/app.js
-    Static-->>Browser: Published wwwroot assets
-    Browser->>Health: GET /health
-    Health-->>Browser: 200 Healthy
+    Learner->>Ui: Open /
+    Ui->>StaticFiles: GET /index.html, /css/site.css, /js/app.js
+    StaticFiles-->>Ui: Published wwwroot assets
+    Ui->>HealthEndpoint: GET /health
+    HealthEndpoint-->>Ui: 200 Healthy
 
-    Learner->>Browser: Submit portfolio form
-    Browser->>Controller: POST /api/v1/portfolios (JSON)
-    Controller->>Handler: CreatePortfolioCommand
-    Handler->>Repository: AddAsync(portfolio)
-    Handler-->>Controller: PortfolioDto
-    Controller-->>Browser: 201 Created + JSON
-    Browser->>Browser: Render exposure summary<br/>Build instrument return matrix
+    Learner->>Ui: Submit portfolio form
+    Ui->>ApiController: POST /api/v1/portfolios (JSON)
+    ApiController->>AppHandlers: CreatePortfolioCommand
+    AppHandlers->>PortfolioStore: AddAsync(portfolio)
+    AppHandlers-->>ApiController: PortfolioDto
+    ApiController-->>Ui: 201 Created + JSON
+    Ui->>Ui: Render exposure summary<br/>Build instrument return matrix
 
-    Learner->>Browser: Submit historical scenarios
-    Browser->>Controller: POST /api/v1/portfolios/{id}/risk (JSON)
-    Controller->>Handler: CalculatePortfolioRiskQuery
-    Handler->>Repository: GetByIdAsync(id)
-    Handler->>Calculator: Calculate(...)
-    Calculator-->>Handler: RiskReport
-    Handler-->>Controller: RiskReportDto
-    Controller-->>Browser: 200 OK + JSON
-    Browser->>Browser: Render metrics, P&L chart,<br/>interpretation and result table
+    Learner->>Ui: Submit historical scenarios
+    Ui->>ApiController: POST /api/v1/portfolios/{id}/risk (JSON)
+    ApiController->>AppHandlers: CalculatePortfolioRiskQuery
+    AppHandlers->>PortfolioStore: GetByIdAsync(id)
+    AppHandlers->>RiskService: Calculate(...)
+    RiskService-->>AppHandlers: RiskReport
+    AppHandlers-->>ApiController: RiskReportDto
+    ApiController-->>Ui: 200 OK + JSON
+    Ui->>Ui: Render metrics, P&L chart,<br/>interpretation and result table
 ```
 
 The UI is a same-origin adapter. ASP.NET Core serves its static files and the
@@ -406,6 +397,76 @@ frontend server or CORS policy.
 The browser does not calculate risk. It gathers input, serializes JSON, handles
 Problem Details, and renders the server's DTO. Domain and Application remain
 the source of business behavior.
+
+## 8. EF Core persistence
+
+```mermaid
+flowchart LR
+    Domain["Domain aggregate<br/>Portfolio + Positions"]
+    Mapper["PortfolioEntityMapper<br/>explicit boundary mapping"]
+    Entities["Persistence entities<br/>PortfolioEntity + PositionEntity"]
+    Context["RiskDbContext<br/>scoped unit of work"]
+    Provider["EF Core SQLite provider<br/>LINQ translation + commands"]
+    Database[("App_Data/riskengine.db<br/>Portfolios + Positions")]
+    Migration["Checked-in migration<br/>schema history + DDL"]
+
+    Domain -->|"ToEntity on write"| Mapper
+    Mapper --> Entities
+    Entities -->|"tracked by DbSet"| Context
+    Context --> Provider
+    Provider -->|"parameterized SQL"| Database
+    Migration -->|"Database.MigrateAsync"| Provider
+    Entities -->|"ToDomain after read"| Mapper
+    Mapper -->|"factories revalidate"| Domain
+```
+
+The Domain project has no EF attributes or provider dependency. Infrastructure
+owns mutable persistence entities, table mappings, migrations, and the explicit
+mapper. That duplication is deliberate: a database row shape can evolve for
+storage concerns without turning the validated domain aggregate into a mutable
+ORM container.
+
+The provider translates supported LINQ expression trees into parameterized SQL.
+EF materializes entities from rows; the mapper then calls Domain factories so
+invalid persisted data cannot silently enter the business model.
+
+## 9. LINQ query execution
+
+```mermaid
+sequenceDiagram
+    participant App as SearchPortfoliosHandler
+    participant Repo as SqlitePortfolioRepository
+    participant Tree as IQueryable expression tree
+    participant Orm as EF Core SQLite provider
+    participant FileDb as SQLite
+
+    App->>Repo: SearchAsync(criteria, token)
+    Repo->>Tree: Compose no-tracking optional filters
+    Note over Tree: Where, Any and navigation Count are deferred
+    Repo->>Orm: CountAsync(token)
+    Orm->>FileDb: SELECT COUNT with filters and EXISTS
+    FileDb-->>Orm: total matching rows
+    Orm-->>Repo: totalCount
+    Repo->>Tree: Add stable order, page and positions
+    Repo->>Orm: ToArrayAsync(token)
+    Orm->>FileDb: SELECT paged portfolios
+    FileDb-->>Orm: portfolio rows
+    Orm->>FileDb: SELECT positions for page
+    FileDb-->>Orm: position rows
+    Orm-->>Repo: materialized entity graphs
+    Repo-->>App: domain portfolios + totalCount
+```
+
+An `IQueryable<T>` is a recipe, not the results. Each operator returns a new
+expression tree. The two terminal operations execute two database round trips:
+one count for pagination metadata and one split materialization query (which
+itself uses a portfolio command and a positions command). `Any` becomes SQL
+`EXISTS`; navigation `Count` becomes a correlated SQL count; `Skip` and `Take`
+become `OFFSET` and `LIMIT` for SQLite.
+
+The stable `OrderBy(Name).ThenBy(Id)` is essential. SQL tables have no implicit
+order, and offset pages can repeat or omit rows if ties have no unique
+tie-breaker.
 
 ## How to edit Mermaid safely
 

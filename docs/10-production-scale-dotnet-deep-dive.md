@@ -1,8 +1,9 @@
 # Deep dive: evolving the learning slice into a large-scale .NET system
 
 The current application is deliberately small and synchronous at its outer
-boundary. This chapter explains what changes when it becomes durable,
-asynchronous, observable, secure, and horizontally scaled.
+boundary. It now has durable local SQLite portfolio storage. This chapter
+explains what changes when that learning foundation becomes a shared,
+asynchronous, observable, secure, and horizontally scaled platform.
 
 Most features in this chapter are **not implemented yet**. They are a design
 map for the exercises, not a claim that the learning baseline is already a
@@ -16,22 +17,24 @@ One API process currently contains:
 Kestrel
   -> ASP.NET Core middleware/controllers
   -> scoped handlers
-  -> singleton in-memory repository
+  -> scoped EF Core repository + RiskDbContext
+  -> embedded SQLite file
   -> singleton stateless risk calculator
 ```
 
 Properties:
 
-- portfolio data disappears on restart;
-- each process has its own unrelated data;
+- portfolio data survives a process restart in the local SQLite file;
+- each process/container still has unrelated state unless it shares the same
+  deliberately mounted file, which is not a horizontal-scaling architecture;
 - risk calculation uses request CPU and must finish before the response;
 - no authentication or authorization exists;
-- health proves only that the process can respond;
+- health verifies SQLite connectivity but not every query or dependency;
 - logs are local console output unless the host collects them;
 - no calculation input/result is durably reproducible.
 
-That is appropriate for learning one vertical slice. Each next step should
-replace a boundary without moving business rules outward.
+That is appropriate for learning one vertical slice and relational APIs. Each
+next step should replace a boundary without moving business rules outward.
 
 ## 2. Persistence with EF Core: the JPA/Hibernate comparison
 
@@ -94,8 +97,10 @@ Direct mapping removes duplication but may force persistence construction and
 change tracking concerns onto carefully encapsulated domain objects.
 Separate persistence models protect Domain but add mapping and can drift.
 
-Choose deliberately. This project starts framework-free so you can compare
-both.
+Choose deliberately. This project uses separate persistence entities and an
+explicit mapper; compare that implementation with direct rich-domain mapping
+before choosing a team convention. The complete implemented slice is explained
+in [the EF/SQLite/LINQ deep dive](12-ef-core-sqlite-linq-deep-dive.md).
 
 ### Fluent entity configuration
 
@@ -773,8 +778,8 @@ throughput, package size, and library compatibility for the deployment model.
 When two API replicas run:
 
 ```text
-client -> load balancer -> API A (memory store A)
-                     \--> API B (memory store B)
+client -> load balancer -> API A -> SQLite file A
+                     \--> API B -> SQLite file B
 ```
 
 A portfolio created on A is absent on B. Sticky sessions mask rather than solve
@@ -884,10 +889,10 @@ identical.
 Do not add every enterprise technology simultaneously. A learning-friendly
 sequence is:
 
-1. **EF Core/PostgreSQL**
-   - durable portfolios;
-   - migrations and integration tests;
-   - scoped lifetime and optimistic concurrency.
+1. **Move the implemented EF Core adapter from SQLite to PostgreSQL**
+   - shared durable portfolios;
+   - provider-specific migrations and integration tests;
+   - optimistic concurrency and deployment-managed migrations.
 2. **Market-data boundary**
    - typed `HttpClient`;
    - governed snapshot and data-quality model;

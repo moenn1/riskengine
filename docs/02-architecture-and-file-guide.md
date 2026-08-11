@@ -56,12 +56,13 @@ for the reasoning behind each boundary.
 |---|---|
 | `.gitignore` | Keeps compiler output, test output, and local IDE state out of source control. |
 | `.dockerignore` | Reduces Docker build context and prevents local/generated files entering an image build. |
-| `.editorconfig` | Shares whitespace and selected C# style rules across Rider, Visual Studio, VS Code, and command-line analyzers. |
+| `.editorconfig` | Shares whitespace and selected C# style rules across Rider, Visual Studio, VS Code, and command-line analyzers. It suppresses one allocation micro-optimization only for EF-generated migration code. |
 | `Directory.Build.props` | Applies target framework, C# version, nullable analysis, implicit usings, deterministic builds, and warnings-as-errors to every project. This is similar to common Maven parent/Gradle convention configuration. |
-| `Directory.Packages.props` | Central Package Management: one version per NuGet dependency for the solution. It explicitly pins patched `Microsoft.OpenApi` 2.11.0 because the web package's minimum transitive version is vulnerable. |
+| `Directory.Packages.props` | Central Package Management: one version per NuGet dependency for the solution. It pins patched `Microsoft.OpenApi` and `SQLitePCLRaw.bundle_e_sqlite3` versions over vulnerable transitive minimums. |
+| `.config/dotnet-tools.json` | Repository-local `dotnet-ef` 10.0.10 tool manifest. `dotnet tool restore` gives every developer/CI the same migration CLI version. |
 | `global.json` | Selects .NET 10 SDK policy and Microsoft Testing Platform as the `dotnet test` runner. `latestFeature` allows an installed later .NET 10 feature band. |
 | `RiskEngine.slnx` | XML solution file listing production and test projects; a solution groups projects but is not deployed. |
-| `Dockerfile` | Multi-stage build: restore/publish with the SDK image, then run as the non-root app user in the smaller ASP.NET runtime image. |
+| `Dockerfile` | Multi-stage build: restore/publish with the SDK image, then run as the non-root app user in the smaller ASP.NET runtime image. It creates a writable `/app/App_Data` SQLite volume. |
 | `.github/workflows/ci.yml` | Restores, builds in Release, and tests on each pull request and main-branch push. |
 | `README.md` | Entry point, architecture summary, safety boundary, commands, and navigation. |
 
@@ -92,11 +93,13 @@ Domain. It knows the use cases but not ASP.NET Core or a database.
 | File | Purpose and lesson |
 |---|---|
 | `Abstractions/IPortfolioRepository.cs` | Output port owned by the use-case layer. Dependency inversion lets infrastructure depend on the interface rather than business code depending on storage. |
+| `Abstractions/IPortfolioQueries.cs` | Read-side port plus provider-neutral criteria/results for search and currency breakdowns. It prevents EF's `IQueryable` escaping Infrastructure. |
 | `Common/RequestValidationException.cs` | Represents transport-neutral invalid use-case input. |
 | `Common/PortfolioNotFoundException.cs` | Represents a missing portfolio without embedding an HTTP status in Application. |
 | `Portfolios/PortfolioDto.cs` | Application read model and explicit Domain-to-DTO mapping. A DTO is not automatically a domain entity. |
 | `Portfolios/CreatePortfolio.cs` | Command, input record, and handler that construct positions/portfolio and persist it asynchronously. |
 | `Portfolios/GetPortfolio.cs` | Small query handler demonstrating lookup, strongly typed ID conversion, cancellation, and not-found behavior. |
+| `Portfolios/SearchPortfolios.cs` | Search/statistics messages, DTOs, validation/normalization, paging math, and handlers for the LINQ-backed read side. |
 | `Risk/CalculatePortfolioRisk.cs` | Query/input/output records and handler coordinating repository, scenario mapping, risk strategy, and `TimeProvider`. |
 
 Command and query classes are kept together with their handler here because the
@@ -111,15 +114,28 @@ Domain objects.
 
 | File | Purpose and lesson |
 |---|---|
-| `Persistence/InMemoryPortfolioRepository.cs` | Thread-safe process-local adapter using `ConcurrentDictionary`. It is a singleton and loses data on restart. Replace it in Milestone 2 without changing Domain. |
+| `Persistence/InMemoryPortfolioRepository.cs` | Fast working fake retained for focused Application tests. Production DI no longer selects it. |
+| `Persistence/RiskDbContext.cs` | Scoped EF Core unit of work and model root. It discovers Fluent API configurations from the Infrastructure assembly. |
+| `Persistence/Entities/PortfolioEntity.cs` | Mutable EF persistence shape for a portfolio row/navigation, deliberately separate from immutable Domain. |
+| `Persistence/Entities/PositionEntity.cs` | Mutable position-row shape with surrogate key, foreign key, decimal input values, and parent navigation. |
+| `Persistence/Configurations/PortfolioEntityConfiguration.cs` | Table/key/property/index mapping and portfolio-to-positions cascade relationship. |
+| `Persistence/Configurations/PositionEntityConfiguration.cs` | Position constraints, decimal precision metadata, indexes, and database-level unique instrument invariant. |
+| `Persistence/PortfolioEntityMapper.cs` | Explicit Domain↔persistence conversion; persisted data re-enters through Domain factories. |
+| `Persistence/SqlitePortfolioRepository.cs` | Scoped EF adapter implementing command and query ports. Demonstrates tracking writes, no-tracking reads, `Include`, predicates, `Any`, correlated `Count`, deterministic paging, split queries, grouped projections, and cancellation. |
+| `Persistence/DatabaseInitialization.cs` | Resolves relative database paths, registers scoped EF services/ports, and applies migrations during learning-project startup with source-generated logging. |
+| `Persistence/RiskDbContextFactory.cs` | Design-time factory used by `dotnet ef`; runtime code receives context options from DI. |
+| `Persistence/Migrations/*_InitialSqlitePersistence.cs` | Generated, reviewable Up/Down schema operations for tables, keys, relationship, and indexes. |
+| `Persistence/Migrations/*_InitialSqlitePersistence.Designer.cs` | Generated model associated with the initial migration. |
+| `Persistence/Migrations/RiskDbContextModelSnapshot.cs` | Latest generated model baseline that EF compares when producing the next migration. |
 
 ## API project
 
 `src/TradingRisk.Api/TradingRisk.Api.csproj` uses the Web SDK, references all
-layers to act as the composition root, and adds the official OpenAPI packages.
-The direct `Microsoft.OpenApi` reference is a security override for
-GHSA-v5pm-xwqc-g5wc; removing it currently restores a vulnerable transitive
-version.
+layers to act as the composition root, and adds the official OpenAPI generator
+plus Swashbuckle's Development-only interactive UI.
+Direct package references override vulnerable OpenAPI and native-SQLite
+transitive minimums; removing them can make `dotnet restore` fail the repository's
+warnings-as-errors security audit.
 
 | File | Purpose and lesson |
 |---|---|
@@ -128,11 +144,12 @@ version.
 | `wwwroot/css/site.css` | Responsive visual system, component layout, focus states, chart styling, and reduced-motion behavior. It uses native CSS rather than a frontend package. |
 | `wwwroot/js/app.js` | Browser adapter that manages UI state, builds request DTO-shaped JSON, calls the real API with `fetch`, handles Problem Details, and renders returned risk metrics without recalculating them. |
 | `Contracts/PortfolioRequests.cs` | JSON request shapes and boundary-level Data Annotations. On positional records, ASP.NET Core validation metadata targets constructor parameters. Decimal range limits use invariant culture so deployment locale cannot change validation. Contracts are separate from domain types to prevent transport concerns leaking inward. |
-| `Controllers/PortfoliosController.cs` | Versioned REST adapter for create/get/calculate. It remains thin, passes cancellation, maps contracts, and uses source-generated/cached structured logging to avoid per-call template allocations. |
+| `Contracts/PortfolioQueryRequests.cs` | Query-string search contract with bounds for filters and pagination. |
+| `Controllers/PortfoliosController.cs` | Versioned REST adapter for create/get/search/statistics/calculate. It remains thin, passes cancellation, maps contracts, and uses source-generated/cached structured logging. |
 | `ErrorHandling/ApiExceptionHandler.cs` | Central exception-to-Problem-Details mapping, safe handling of unexpected errors, and source-generated logging with stable event IDs. |
 | `Options/RiskApiOptions.cs` | Strongly typed configuration for default confidence and request-size limit. |
-| `appsettings.json` | Non-secret defaults and logging configuration. Environment variables can override nested keys with `__`, for example `RiskApi__MaxScenarioCount`. |
-| `appsettings.Development.json` | Development-only logging override selected by `ASPNETCORE_ENVIRONMENT`. |
+| `appsettings.json` | Non-secret defaults, logging, and SQLite connection string. Environment variables override nested keys with `__`, for example `ConnectionStrings__RiskDatabase`. |
+| `appsettings.Development.json` | Development-only logging override, including visible parameterized EF SQL commands. |
 | `Properties/launchSettings.json` | Local Rider/Visual Studio/CLI launch profiles. It is not production deployment configuration. |
 | `TradingRisk.Api.http` | Rider/Visual Studio HTTP client request collection for manually walking the vertical slice. |
 
@@ -140,10 +157,11 @@ version.
 
 | Registration | Lifetime | Reason |
 |---|---|---|
-| `InMemoryPortfolioRepository` | singleton | Process-local data must survive across requests; its collection and stored aggregates are thread-safe/immutable. |
+| `RiskDbContext` | scoped | EF contexts are short-lived units of work and are not thread-safe. |
+| `SqlitePortfolioRepository` | scoped | Shares the request context and performs async database I/O; both Application ports resolve to the same scoped instance. |
 | `HistoricalSimulationRiskCalculator` | singleton | Pure, stateless, thread-safe service. |
 | `TimeProvider.System` | singleton | Clock abstraction contains no request state. |
-| use-case handlers | scoped | Conventional per-request ownership and ready for a future scoped `DbContext`. |
+| use-case handlers | scoped | Conventional per-request ownership; may safely depend on the scoped repository/context graph. |
 
 ## Test project
 
@@ -158,11 +176,13 @@ in-process tests and the inner projects for focused tests.
 | `Domain/PortfolioTests.cs` | Aggregate invariants and long/short exposure behavior. |
 | `Domain/HistoricalSimulationRiskCalculatorTests.cs` | Deterministic formula tests, missing-data failure, and confidence validation. This is also an executable finance specification. |
 | `Application/CalculatePortfolioRiskHandlerTests.cs` | Handler test with real in-memory adapter and a fake `TimeProvider`, avoiding ambient clock flakiness. |
-| `Api/PortfolioApiTests.cs` | Boots the real ASP.NET app in memory and tests the default UI document/assets plus JSON/HTTP, DI, storage, handler, and domain calculation. It disables configuration reload only in the restricted test process because the workspace blocks the native file watcher. |
+| `Infrastructure/SqlitePortfolioRepositoryTests.cs` | Applies real migrations to a temporary SQLite file and proves cross-context persistence plus translated search/paging/grouping behavior. |
+| `Api/SqliteWebApplicationFactory.cs` | Replaces production context options with an isolated temporary SQLite file per API test host and removes its files on disposal. |
+| `Api/PortfolioApiTests.cs` | Boots the real ASP.NET app in memory and tests UI assets, database health, migrations, JSON/HTTP, EF persistence, LINQ endpoints, handlers, and risk calculation. |
 
 The test pyramid here is intentional: many fast domain tests, fewer handler
-tests, and one broad HTTP test. Later PostgreSQL tests belong between handler
-and full end-to-end coverage.
+tests, real SQLite repository tests, and a few broad HTTP tests. Later
+PostgreSQL tests should repeat provider-sensitive behavior against PostgreSQL.
 
 ## Documentation files
 
@@ -180,6 +200,7 @@ and full end-to-end coverage.
 | `docs/09-testing-dotnet-and-risk-deep-dive.md` | xUnit v3 syntax, test project anatomy, test doubles, deterministic time, `WebApplicationFactory`, isolation, numeric/risk assertions, and future database tests. |
 | `docs/10-production-scale-dotnet-deep-dive.md` | EF Core, transactions, async/parallelism, durable jobs/messaging, `HttpClient`, caching, security, observability, performance, scaling, deployment, and model governance. |
 | `docs/11-browser-ui-deep-dive.md` | Detailed guide to static-file hosting, semantic HTML, CSS, browser JavaScript, API calls, security, testing, packaging, and Java/Spring comparisons. |
+| `docs/12-ef-core-sqlite-linq-deep-dive.md` | Detailed Java/JPA comparison for packages, connection strings, DbContext, entities/mappings, repositories, LINQ translation, migrations, testing, SQLite limitations, and production evolution. |
 
 ## Rules that protect the architecture
 

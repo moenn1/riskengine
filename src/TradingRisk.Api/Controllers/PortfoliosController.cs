@@ -16,12 +16,42 @@ namespace TradingRisk.Api.Controllers;
 public sealed partial class PortfoliosController(
     CreatePortfolioHandler createPortfolio,
     GetPortfolioHandler getPortfolio,
+    SearchPortfoliosHandler searchPortfolios,
+    GetPortfolioStatisticsHandler getPortfolioStatistics,
     CalculatePortfolioRiskHandler calculateRisk,
     IOptions<RiskApiOptions> options,
     ILogger<PortfoliosController> logger) : ControllerBase
 {
     // A named route lets CreatedAtRoute generate the Location header without duplicating a URL.
     private const string GetPortfolioRouteName = "GetPortfolioById";
+
+    [HttpGet]
+    [ProducesResponseType<PortfolioSearchPageDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PortfolioSearchPageDto>> SearchAsync(
+        [FromQuery] PortfolioSearchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await searchPortfolios.HandleAsync(
+            new SearchPortfoliosQuery(
+                request.Name,
+                request.BaseCurrency,
+                request.InstrumentId,
+                request.MinimumPositionCount,
+                request.Page,
+                request.PageSize),
+            cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpGet("statistics/by-currency")]
+    [ProducesResponseType<PortfolioStatisticsDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PortfolioStatisticsDto>> GetStatisticsAsync(
+        CancellationToken cancellationToken)
+    {
+        return Ok(await getPortfolioStatistics.HandleAsync(cancellationToken));
+    }
 
     [HttpPost]
     [ProducesResponseType<PortfolioDto>(StatusCodes.Status201Created)]

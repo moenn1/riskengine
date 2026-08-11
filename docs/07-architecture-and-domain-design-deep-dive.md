@@ -60,7 +60,7 @@ If all packages are in one Maven module, `domain` can still import
 
 This repository makes each major boundary a `.csproj`. If Domain does not have
 a `ProjectReference` to Infrastructure, code in Domain cannot compile when it
-tries to use `InMemoryPortfolioRepository`. The compiler becomes an
+tries to use `SqlitePortfolioRepository` or `RiskDbContext`. The compiler becomes an
 architecture guard.
 
 This does not mean “one project per folder” is always best. Project boundaries
@@ -241,17 +241,17 @@ same.
 ## 3.3 Infrastructure: technical adapters
 
 Infrastructure contains implementations using a particular technology. The
-current adapter is:
+production adapter is:
+
+```csharp
+public sealed class SqlitePortfolioRepository(RiskDbContext dbContext)
+    : IPortfolioRepository, IPortfolioQueries
+```
+
+The original adapter remains as a focused Application-test fake:
 
 ```csharp
 public sealed class InMemoryPortfolioRepository : IPortfolioRepository
-```
-
-Later, an EF Core adapter can implement the same interface:
-
-```csharp
-public sealed class EfPortfolioRepository(RiskDbContext dbContext)
-    : IPortfolioRepository
 ```
 
 The application handler should not change merely because storage changes.
@@ -276,9 +276,10 @@ can use EF Core, Dapper, HTTP, or memory internally.
 
 ### Why Infrastructure references Domain
 
-The in-memory adapter stores `Portfolio` objects. It therefore needs the Domain
-assembly. It also implements an Application interface, so it needs Application.
-Those are the two `<ProjectReference>` entries in its project file.
+The EF adapter reconstructs `Portfolio` objects through Domain factories. It
+therefore needs the Domain assembly. It also implements Application interfaces,
+so it needs Application. Those are the two `<ProjectReference>` entries in its
+project file.
 
 ## 3.4 API: inbound adapter and composition root
 
@@ -295,7 +296,8 @@ First, it is an HTTP adapter:
 
 Second, it is the composition root:
 
-- choose `InMemoryPortfolioRepository` for `IPortfolioRepository`;
+- choose `SqlitePortfolioRepository` for the repository/query ports;
+- configure scoped `RiskDbContext` with the SQLite connection;
 - choose `HistoricalSimulationRiskCalculator` for `IRiskCalculator`;
 - choose object lifetimes;
 - bind configuration;
@@ -585,8 +587,8 @@ authoritative domain invariant.
 
 ## 8. Immutability and thread safety
 
-The current singleton repository may be accessed concurrently by many
-requests. Two choices make that safe for this milestone:
+The in-memory fake may be accessed concurrently by tests or a future local
+composition. Two choices make that adapter safe:
 
 1. the dictionary is a `ConcurrentDictionary`;
 2. stored `Portfolio` aggregates are immutable snapshots.
@@ -611,13 +613,22 @@ and mutate the portfolio indirectly.
 reference; it does not prove the underlying collection can never change.
 Ownership and copying still matter.
 
-## 9. Transactions and consistency when persistence arrives
+The production EF adapter takes a different approach: repository and
+`RiskDbContext` are scoped per request. A context is stateful and not
+thread-safe, so callers must await one operation before using that instance
+again. Scoped lifetime avoids sharing it between concurrent requests.
 
-The in-memory adapter completes immediately. An EF Core version introduces new
-questions:
+## 9. Transactions and consistency with persistence
 
-- Does creating a portfolio write one table or several?
-- Is one `SaveChangesAsync` the transaction boundary?
+The SQLite EF adapter now answers the first learning-level questions:
+
+- creating a portfolio writes the aggregate across portfolio and position
+  tables;
+- one `SaveChangesAsync` is the transaction boundary for that aggregate;
+- no-tracking reads reconstruct the domain aggregate through explicit mapping.
+
+The next production questions remain:
+
 - How are concurrent changes detected?
 - Should calculation read a consistent position/market-data snapshot?
 - Is the result persisted with its exact input versions?

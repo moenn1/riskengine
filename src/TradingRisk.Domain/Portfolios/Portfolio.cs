@@ -5,8 +5,8 @@ namespace TradingRisk.Domain.Portfolios;
 
 /// <summary>
 /// Aggregate root for the positions whose invariants must be kept consistent together.
-/// This first milestone makes portfolios immutable, which also makes the in-memory store safe
-/// to read concurrently.
+/// Its immutable snapshot prevents callers from changing a position set without re-entering
+/// aggregate validation and is naturally safe to read concurrently.
 /// </summary>
 public sealed class Portfolio
 {

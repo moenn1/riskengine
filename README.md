@@ -12,8 +12,11 @@ The implemented vertical slice lets you:
 3. calculate historical Value at Risk (VaR), Expected Shortfall (ES), worst loss,
    daily P&L volatility, and annualized P&L volatility;
 4. explore that workflow in a responsive browser workbench;
-5. observe validation and errors through standard HTTP Problem Details; and
-6. test the domain, application handler, static UI, and complete HTTP flow.
+5. persist portfolios in an embedded SQLite database through EF Core;
+6. search and aggregate portfolios through LINQ translated to SQL;
+7. observe validation and errors through standard HTTP Problem Details; and
+8. test the domain, application handler, relational adapter, static UI, and
+   complete HTTP flow.
 
 This is an educational risk engine, not a trading or regulatory system. Its
 linear P&L approximation is intentionally transparent and is unsuitable for
@@ -31,11 +34,12 @@ code. Use this study order:
 5. [Architecture and domain-design deep dive](docs/07-architecture-and-domain-design-deep-dive.md)
 6. [ASP.NET Core web API deep dive](docs/08-aspnet-core-web-api-deep-dive.md)
 7. [Browser UI deep dive](docs/11-browser-ui-deep-dive.md)
-8. [Risk metrics and finance deep dive](docs/03-risk-metrics.md)
-9. [.NET and risk testing deep dive](docs/09-testing-dotnet-and-risk-deep-dive.md)
-10. [GitHub-rendered Mermaid diagrams](docs/06-mermaid-diagrams.md)
-11. [Production-scale .NET deep dive](docs/10-production-scale-dotnet-deep-dive.md)
-12. [Hands-on exercises](docs/04-exercises.md)
+8. [EF Core, SQLite, and LINQ deep dive](docs/12-ef-core-sqlite-linq-deep-dive.md)
+9. [Risk metrics and finance deep dive](docs/03-risk-metrics.md)
+10. [.NET and risk testing deep dive](docs/09-testing-dotnet-and-risk-deep-dive.md)
+11. [GitHub-rendered Mermaid diagrams](docs/06-mermaid-diagrams.md)
+12. [Production-scale .NET deep dive](docs/10-production-scale-dotnet-deep-dive.md)
+13. [Hands-on exercises](docs/04-exercises.md)
 
 The C# and project files also contain teaching comments at decisions where a
 Spring developer is likely to ask “why,” while the docs hold the fuller
@@ -68,6 +72,7 @@ then verify it:
 ```bash
 dotnet --version
 dotnet restore RiskEngine.slnx
+dotnet tool restore
 dotnet build RiskEngine.slnx
 dotnet test RiskEngine.slnx
 dotnet run --project src/TradingRisk.Api --launch-profile http
@@ -83,22 +88,28 @@ Once running:
 - browser risk workbench: `http://localhost:5229/`
 - health: `http://localhost:5229/health`
 - OpenAPI document in Development: `http://localhost:5229/openapi/v1.json`
+- interactive Swagger UI in Development: `http://localhost:5229/swagger`
 - runnable request collection:
   [`TradingRisk.Api.http`](src/TradingRisk.Api/TradingRisk.Api.http)
+- SQLite file: `src/TradingRisk.Api/App_Data/riskengine.db`
 
 The browser workbench guides you through creating a portfolio, entering a
 historical return matrix, and interpreting the calculated distribution. It
 calls the same API documented by the `.http` file; the JavaScript does not
 reimplement the risk formulas. If you use the request collection instead,
 create a portfolio first, copy its returned ID into the `.http` file, and then
-run the risk request. Storage is currently in memory, so restarting the API
-removes all portfolios.
+run the risk request. The `.http` file also contains filtered/paged search and
+currency-statistics requests that exercise the EF/LINQ repository. Portfolios
+survive process restarts because SQLite owns the data; the local database and
+journal files are ignored by Git.
 
 ## Container
 
 ```bash
 docker build -t trading-risk-learning .
-docker run --rm -p 8080:8080 trading-risk-learning
+docker run --rm -p 8080:8080 \
+  -v riskengine-data:/app/App_Data \
+  trading-risk-learning
 ```
 
 The browser workbench is then `http://localhost:8080/`, and the health endpoint
@@ -106,8 +117,9 @@ is `http://localhost:8080/health`.
 
 ## What is deliberately not implemented yet
 
-The learning path turns these omissions into later milestones: PostgreSQL and
-EF Core, transactions and optimistic concurrency, market-data ingestion,
+The learning path turns these omissions into later milestones: PostgreSQL or
+another production database, explicit transaction workflows and optimistic
+concurrency, market-data ingestion,
 background jobs and messaging, idempotency, an outbox, caching, authentication
 and authorization, OpenTelemetry, resilience, load testing, advanced
 instrument pricing, backtesting, and regulatory reporting.

@@ -512,8 +512,9 @@ object may still be mutable.
 
 Browser state is deliberately small. The authoritative portfolio is returned
 by the API and also stored in the server repository. Reloading the page clears
-browser state; restarting the process clears this learning project's in-memory
-server state.
+browser state; restarting the process does not clear the portfolio because the
+server repository commits it to SQLite. The UI currently does not automatically
+reload a prior portfolio into its page state.
 
 ### 9.2 Cached DOM references
 
@@ -1022,7 +1023,7 @@ Use Rider:
 | buttons do nothing | console parse/runtime error and `/js/app.js` response |
 | API status says unavailable | `/health`, HTTPS redirect/base URL, reverse proxy |
 | API returns 400 | Network response Problem Details and request JSON field names/types |
-| risk endpoint returns 404 | portfolio ID and whether the in-memory server restarted |
+| risk endpoint returns 404 | portfolio ID, active database connection, and whether that row exists |
 | scenario validation fails | missing instrument return, duplicate date, return bounds, or confidence |
 | date appears one day early | UTC handling when converting date-only values |
 | page works locally but not after publish | confirm `wwwroot` is in publish/container output |

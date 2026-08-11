@@ -25,3 +25,8 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 [*.md]
 trim_trailing_whitespace = false
 indent_size = 2
+
+# EF generates a short-lived string array for composite-index metadata. Editing generated
+# migrations into static fields makes later regeneration noisy for no meaningful benefit.
+[**/Migrations/*.cs]
+dotnet_diagnostic.CA1861.severity = none
