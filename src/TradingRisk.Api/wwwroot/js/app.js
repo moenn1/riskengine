@@ -24,7 +24,9 @@ const sampleReturnColumns = [
 const state = {
   portfolio: null,
   positionRowCounter: 0,
-  scenarioRowCounter: 0
+  scenarioRowCounter: 0,
+  dashboardPage: 1,
+  dashboardTotalPages: 0
 };
 
 const elements = {
@@ -73,6 +75,20 @@ const elements = {
   errorDetails: document.querySelector("#error-details"),
   dismissErrorButton: document.querySelector("#dismiss-error-button"),
   toast: document.querySelector("#toast")
+  ,refreshDashboardButton: document.querySelector("#refresh-dashboard-button")
+  ,dashboardSearchButton: document.querySelector("#dashboard-search-button")
+  ,dashboardNameFilter: document.querySelector("#dashboard-name-filter")
+  ,dashboardCurrencyFilter: document.querySelector("#dashboard-currency-filter")
+  ,dashboardPageSize: document.querySelector("#dashboard-page-size")
+  ,dashboardPortfolioCount: document.querySelector("#dashboard-portfolio-count")
+  ,dashboardPositionCount: document.querySelector("#dashboard-position-count")
+  ,dashboardCurrencyCount: document.querySelector("#dashboard-currency-count")
+  ,dashboardTableBody: document.querySelector("#dashboard-table-body")
+  ,dashboardPageLabel: document.querySelector("#dashboard-page-label")
+  ,dashboardResultLabel: document.querySelector("#dashboard-result-label")
+  ,dashboardPreviousButton: document.querySelector("#dashboard-previous-button")
+  ,dashboardNextButton: document.querySelector("#dashboard-next-button")
+  ,currencyBreakdown: document.querySelector("#currency-breakdown")
 };
 
 class ApiError extends Error {
@@ -220,6 +236,7 @@ async function submitPortfolio(event) {
     renderPortfolioSummary(portfolio);
     unlockRiskForm(portfolio);
     setJourneyState("scenarios");
+    loadDashboard(state.dashboardPage);
     showToast("Portfolio created. The scenario matrix is ready.");
     document.querySelector(".scenarios-panel").scrollIntoView({
       behavior: prefersReducedMotion() ? "auto" : "smooth",
@@ -545,6 +562,105 @@ function createTableCell(text) {
   return createElement("td", null, text);
 }
 
+async function loadDashboard(page = state.dashboardPage) {
+  const params = new URLSearchParams({
+    page: String(page),
+    pageSize: elements.dashboardPageSize.value,
+  });
+  const name = elements.dashboardNameFilter.value.trim();
+  const currency = elements.dashboardCurrencyFilter.value.trim().toUpperCase();
+
+  if (name) params.set("name", name);
+  if (currency) params.set("baseCurrency", currency);
+
+  setButtonBusy(elements.refreshDashboardButton, true, "Refreshing", "↻");
+  try {
+    const [portfolioPage, statistics] = await Promise.all([
+      getJson(`/api/v1/portfolios?${params.toString()}`),
+      getJson("/api/v1/portfolios/statistics/by-currency")
+    ]);
+
+    state.dashboardPage = portfolioPage.page;
+    state.dashboardTotalPages = portfolioPage.totalPages;
+    elements.dashboardPortfolioCount.textContent = statistics.portfolioCount;
+    elements.dashboardPositionCount.textContent = statistics.positionCount;
+    elements.dashboardCurrencyCount.textContent = statistics.byCurrency.length;
+    elements.dashboardPageLabel.textContent =
+      `Page ${portfolioPage.page} of ${Math.max(1, portfolioPage.totalPages)}`;
+    elements.dashboardResultLabel.textContent =
+      `${portfolioPage.totalCount} persisted portfolio${portfolioPage.totalCount === 1 ? "" : "s"}`;
+    elements.dashboardPreviousButton.disabled = portfolioPage.page <= 1;
+    elements.dashboardNextButton.disabled =
+      portfolioPage.totalPages === 0 || portfolioPage.page >= portfolioPage.totalPages;
+
+    elements.dashboardTableBody.replaceChildren();
+    if (portfolioPage.items.length === 0) {
+      const emptyRow = document.createElement("tr");
+      const emptyCell = createElement("td", "dashboard-empty", "No portfolios match these filters.");
+      emptyCell.colSpan = 4;
+      emptyRow.append(emptyCell);
+      elements.dashboardTableBody.append(emptyRow);
+    } else {
+      for (const portfolio of portfolioPage.items) {
+        const row = document.createElement("tr");
+        row.append(
+          createTableCell(portfolio.name),
+          createTableCell(portfolio.baseCurrency),
+          createTableCell(String(portfolio.positionCount)),
+          createTableCell(formatMoney(portfolio.grossExposure, portfolio.baseCurrency))
+        );
+        elements.dashboardTableBody.append(row);
+      }
+    }
+
+    elements.currencyBreakdown.replaceChildren();
+    if (statistics.byCurrency.length === 0) {
+      elements.currencyBreakdown.append(
+        createElement("p", "dashboard-empty", "Create a portfolio to see grouped statistics.")
+      );
+    } else {
+      for (const item of statistics.byCurrency) {
+        const row = createElement("div", "currency-row");
+        const heading = createElement("div", "currency-row-heading");
+        heading.append(
+          createElement("strong", null, item.baseCurrency),
+          createElement("span", null, `${item.portfolioCount} portfolio${item.portfolioCount === 1 ? "" : "s"}`)
+        );
+        const detail = createElement(
+          "span",
+          "currency-row-detail",
+          `${item.positionCount} position${item.positionCount === 1 ? "" : "s"}`
+        );
+        row.append(heading, detail);
+        elements.currencyBreakdown.append(row);
+      }
+    }
+  } catch (error) {
+    showError(error);
+  } finally {
+    setButtonBusy(elements.refreshDashboardButton, false, "Refresh data", "↻");
+  }
+}
+
+async function getJson(url) {
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    cache: "no-store"
+  });
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      body?.title ?? `Request failed with status ${response.status}`,
+      body?.detail ?? "The server did not return additional error details.",
+      body?.errors ? Object.values(body.errors).flat().map(String) : []
+    );
+  }
+
+  return body;
+}
+
 async function sendJson(url, method, payload) {
   const response = await fetch(url, {
     method,
@@ -750,6 +866,22 @@ elements.editPortfolioButton.addEventListener("click", resetForAnotherPortfolio)
 elements.addScenarioButton.addEventListener("click", () => addScenarioRow());
 elements.riskForm.addEventListener("submit", submitRisk);
 elements.dismissErrorButton.addEventListener("click", hideError);
+elements.refreshDashboardButton.addEventListener("click", () => loadDashboard());
+elements.dashboardSearchButton.addEventListener("click", () => {
+  state.dashboardPage = 1;
+  loadDashboard(1);
+});
+elements.dashboardPreviousButton.addEventListener("click", () => {
+  if (state.dashboardPage > 1) loadDashboard(state.dashboardPage - 1);
+});
+elements.dashboardNextButton.addEventListener("click", () => {
+  if (state.dashboardPage < state.dashboardTotalPages) {
+    loadDashboard(state.dashboardPage + 1);
+  }
+});
+elements.dashboardCurrencyFilter.addEventListener("input", event => {
+  event.target.value = event.target.value.toUpperCase();
+});
 elements.baseCurrency.addEventListener("input", event => {
   event.target.value = event.target.value.toUpperCase();
 });
@@ -758,3 +890,4 @@ elements.baseCurrency.addEventListener("input", event => {
 fillPortfolioForm(samplePortfolio, false);
 setJourneyState("portfolio");
 checkHealth();
+loadDashboard();

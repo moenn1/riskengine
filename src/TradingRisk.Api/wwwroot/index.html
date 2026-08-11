@@ -96,6 +96,76 @@
       </li>
     </ol>
 
+    <section class="dashboard" id="portfolio-overview" aria-labelledby="overview-title">
+      <header class="dashboard-header">
+        <div>
+          <p class="eyebrow">DATABASE VIEW · EF CORE</p>
+          <h2 id="overview-title">Portfolio overview</h2>
+          <p>Browse every portfolio persisted in SQLite and inspect grouped exposure counts.</p>
+        </div>
+        <div class="dashboard-actions">
+          <a class="button button-quiet button-small" href="#workbench">Create portfolio</a>
+          <button class="button button-primary button-small" id="refresh-dashboard-button" type="button">
+            Refresh data <span aria-hidden="true">↻</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="dashboard-metrics" aria-live="polite">
+        <article><span>Portfolios</span><strong id="dashboard-portfolio-count">—</strong></article>
+        <article><span>Positions</span><strong id="dashboard-position-count">—</strong></article>
+        <article><span>Currencies</span><strong id="dashboard-currency-count">—</strong></article>
+      </div>
+
+      <div class="dashboard-toolbar">
+        <label class="field">
+          <span>Search name</span>
+          <input id="dashboard-name-filter" type="search" placeholder="e.g. Learning" maxlength="100">
+        </label>
+        <label class="field">
+          <span>Currency</span>
+          <input id="dashboard-currency-filter" type="text" placeholder="USD" maxlength="3" autocapitalize="characters">
+        </label>
+        <label class="field">
+          <span>Page size</span>
+          <select id="dashboard-page-size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <button class="button button-quiet button-small" id="dashboard-search-button" type="button">Apply filters</button>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="dashboard-card">
+          <div class="card-heading">
+            <div><p>PORTFOLIO REGISTER</p><h3>All portfolios</h3></div>
+            <span id="dashboard-page-label">Page 1</span>
+          </div>
+          <div class="table-scroll">
+            <table class="result-table portfolio-table">
+              <caption class="visually-hidden">Persisted portfolios</caption>
+              <thead><tr><th>Name</th><th>Currency</th><th>Positions</th><th>Gross exposure</th></tr></thead>
+              <tbody id="dashboard-table-body"></tbody>
+            </table>
+          </div>
+          <div class="dashboard-pagination">
+            <span id="dashboard-result-label">Loading portfolios…</span>
+            <div>
+              <button class="button button-quiet button-small" id="dashboard-previous-button" type="button">← Previous</button>
+              <button class="button button-quiet button-small" id="dashboard-next-button" type="button">Next →</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="dashboard-card currency-card">
+          <div class="card-heading"><div><p>GROUPED PROJECTION</p><h3>By currency</h3></div></div>
+          <div id="currency-breakdown" class="currency-breakdown" aria-live="polite"></div>
+        </article>
+      </div>
+    </section>
+
     <div class="alert" id="error-alert" role="alert" hidden>
       <div>
         <strong id="error-title">The request could not be completed.</strong>

@@ -1319,6 +1319,183 @@ table {
   padding: clamp(80px, 10vw, 140px) 0;
 }
 
+.dashboard {
+  margin: clamp(54px, 8vw, 104px) 0 0;
+  padding: clamp(26px, 4vw, 48px);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-large);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.dashboard-header,
+.dashboard-pagination,
+.currency-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 48px);
+  letter-spacing: -0.06em;
+}
+
+.dashboard-header p:last-child {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dashboard-metrics {
+  display: grid;
+  margin: 32px 0 24px;
+  border-block: 1px solid var(--line);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dashboard-metrics article {
+  padding: 18px 20px;
+  border-right: 1px solid var(--line);
+}
+
+.dashboard-metrics article:last-child {
+  border-right: 0;
+}
+
+.dashboard-metrics span,
+.dashboard-pagination,
+.dashboard-card .card-heading > span {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dashboard-metrics strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--teal-dark);
+  font-size: 32px;
+  letter-spacing: -0.06em;
+}
+
+.dashboard-toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 120px 100px auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.dashboard-toolbar select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  color: var(--ink);
+  background: var(--surface);
+  font-family: var(--mono);
+}
+
+.dashboard-grid {
+  display: grid;
+  margin-top: 28px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.7fr);
+  gap: 18px;
+}
+
+.dashboard-card {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: #fbfcf8;
+}
+
+.dashboard-card .card-heading {
+  margin-bottom: 18px;
+}
+
+.dashboard-card .card-heading h3 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+
+.dashboard-card .card-heading > div > p {
+  margin-bottom: 6px;
+}
+
+.portfolio-table th,
+.portfolio-table td {
+  padding: 13px 10px;
+}
+
+.portfolio-table th:first-child,
+.portfolio-table td:first-child {
+  padding-left: 0;
+}
+
+.portfolio-table td:first-child {
+  font-weight: 750;
+}
+
+.dashboard-pagination {
+  margin-top: 16px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.dashboard-pagination > div {
+  display: flex;
+  gap: 8px;
+}
+
+.dashboard-empty {
+  padding: 28px 0 !important;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.currency-breakdown {
+  display: grid;
+  gap: 10px;
+}
+
+.currency-row {
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+}
+
+.currency-row-heading strong {
+  color: var(--teal-dark);
+  font-family: var(--mono);
+  font-size: 18px;
+}
+
+.currency-row-heading span,
+.currency-row-detail {
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.currency-row-detail {
+  display: block;
+  margin-top: 4px;
+}
+
 .concepts > header {
   display: flex;
   gap: 30px;
@@ -1488,6 +1665,10 @@ table {
   .report-grid {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1539,8 +1720,22 @@ table {
   }
 
   .form-grid-two,
-  .risk-settings {
+  .risk-settings,
+  .dashboard-toolbar {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .dashboard-actions {
+    width: 100%;
+  }
+
+  .dashboard-actions .button {
+    flex: 1;
   }
 
   .position-column-labels {
@@ -1585,8 +1780,23 @@ table {
 
   .summary-values,
   .metric-grid,
-  .concept-grid {
+  .concept-grid,
+  .dashboard-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-metrics article {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .dashboard-metrics article:last-child {
+    border-bottom: 0;
+  }
+
+  .dashboard-pagination {
+    align-items: start;
+    flex-direction: column;
   }
 
   .metric-card {
