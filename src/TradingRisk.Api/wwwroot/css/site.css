@@ -168,6 +168,30 @@ code {
   box-shadow: 0 0 0 4px rgb(200 92 74 / 14%);
 }
 
+.site-nav {
+  display: flex;
+  gap: 8px;
+  order: 2;
+  margin-left: auto;
+  margin-right: 18px;
+}
+
+.site-nav a {
+  padding: 8px 11px;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.site-nav a:hover,
+.site-nav a.is-active {
+  color: var(--teal-dark);
+  background: var(--teal-pale);
+}
+
 main,
 .site-footer {
   width: min(1320px, calc(100% - 40px));
@@ -1264,6 +1288,70 @@ table {
   text-align: left;
 }
 
+.dashboard .result-table th {
+  color: var(--ink-soft);
+  border-top-color: var(--line);
+}
+
+.dashboard .result-table td {
+  color: var(--ink);
+  border-top-color: var(--line);
+}
+
+.portfolio-row-is-expandable {
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.portfolio-row-is-expandable:hover,
+.portfolio-row-is-expandable:focus-visible {
+  outline: none;
+  background: var(--teal-pale);
+}
+
+.portfolio-row-is-expandable::after {
+  content: "＋";
+  color: var(--teal);
+}
+
+.portfolio-row-is-expandable[aria-expanded="true"]::after {
+  content: "−";
+}
+
+.portfolio-detail-row td {
+  padding: 0 10px 14px;
+  border-top: 0;
+  background: #f1f6f1;
+}
+
+.position-detail-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.position-detail-item {
+  display: grid;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink-soft);
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+
+.position-detail-item strong {
+  color: var(--teal-dark);
+  font-size: 11px;
+}
+
+.position-detail-item em {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 750;
+}
+
 .result-table th {
   color: #8fa8ae;
   font-family: var(--mono);
@@ -1674,6 +1762,13 @@ table {
 @media (max-width: 760px) {
   .site-header {
     min-height: 74px;
+    flex-wrap: wrap;
+  }
+
+  .site-nav {
+    width: 100%;
+    margin: 4px 0 0;
+    order: 3;
   }
 
   .brand small {

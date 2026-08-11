@@ -26,6 +26,10 @@
       <span class="status-dot" id="api-status-dot" aria-hidden="true"></span>
       <span id="api-status-text">Checking API</span>
     </div>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="#overview" data-view-link="overview">Overview</a>
+      <a href="#workbench" data-view-link="workbench">Risk workbench</a>
+    </nav>
   </header>
 
   <main>
@@ -96,7 +100,7 @@
       </li>
     </ol>
 
-    <section class="dashboard" id="portfolio-overview" aria-labelledby="overview-title">
+    <section class="dashboard" id="portfolio-overview" data-view="overview" aria-labelledby="overview-title">
       <header class="dashboard-header">
         <div>
           <p class="eyebrow">DATABASE VIEW · EF CORE</p>
@@ -177,7 +181,7 @@
       </button>
     </div>
 
-    <section class="workbench" id="workbench" aria-label="Risk workbench">
+    <section class="workbench" id="workbench" data-view="workbench" aria-label="Risk workbench">
       <article class="panel portfolio-panel">
         <header class="panel-header">
           <div>
@@ -354,7 +358,7 @@
       </article>
     </section>
 
-    <section class="report" id="risk-report" aria-labelledby="report-title" hidden>
+    <section class="report" id="risk-report" data-view="workbench" aria-labelledby="report-title" hidden>
       <header class="report-header">
         <div>
           <p class="step-label">STEP 03 / RISK REPORT</p>
@@ -453,7 +457,7 @@
       </article>
     </section>
 
-    <section class="concepts" id="concepts" aria-labelledby="concepts-title">
+    <section class="concepts" id="concepts" data-view="overview" aria-labelledby="concepts-title">
       <header>
         <p class="eyebrow">READ THE CODE, THEN CHANGE IT</p>
         <h2 id="concepts-title">Three boundaries to notice</h2>

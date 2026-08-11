@@ -26,6 +26,9 @@ public sealed class PortfolioApiTests
         var html = await rootResponse.Content.ReadAsStringAsync(cancellationToken);
         Assert.Contains("Risk Engine · Historical Simulation Lab", html);
         Assert.Contains("id=\"portfolio-form\"", html);
+        Assert.Contains("Portfolio overview", html);
+        Assert.Contains("data-view-link=\"workbench\"", html);
+        Assert.Contains("id=\"dashboard-table-body\"", html);
 
         using var styleResponse = await client.GetAsync(
             "/css/site.css",

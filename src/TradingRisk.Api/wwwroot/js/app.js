@@ -74,21 +74,22 @@ const elements = {
   errorMessage: document.querySelector("#error-message"),
   errorDetails: document.querySelector("#error-details"),
   dismissErrorButton: document.querySelector("#dismiss-error-button"),
-  toast: document.querySelector("#toast")
-  ,refreshDashboardButton: document.querySelector("#refresh-dashboard-button")
-  ,dashboardSearchButton: document.querySelector("#dashboard-search-button")
-  ,dashboardNameFilter: document.querySelector("#dashboard-name-filter")
-  ,dashboardCurrencyFilter: document.querySelector("#dashboard-currency-filter")
-  ,dashboardPageSize: document.querySelector("#dashboard-page-size")
-  ,dashboardPortfolioCount: document.querySelector("#dashboard-portfolio-count")
-  ,dashboardPositionCount: document.querySelector("#dashboard-position-count")
-  ,dashboardCurrencyCount: document.querySelector("#dashboard-currency-count")
-  ,dashboardTableBody: document.querySelector("#dashboard-table-body")
-  ,dashboardPageLabel: document.querySelector("#dashboard-page-label")
-  ,dashboardResultLabel: document.querySelector("#dashboard-result-label")
-  ,dashboardPreviousButton: document.querySelector("#dashboard-previous-button")
-  ,dashboardNextButton: document.querySelector("#dashboard-next-button")
-  ,currencyBreakdown: document.querySelector("#currency-breakdown")
+  toast: document.querySelector("#toast"),
+  refreshDashboardButton: document.querySelector("#refresh-dashboard-button"),
+  dashboardSearchButton: document.querySelector("#dashboard-search-button"),
+  dashboardNameFilter: document.querySelector("#dashboard-name-filter"),
+  dashboardCurrencyFilter: document.querySelector("#dashboard-currency-filter"),
+  dashboardPageSize: document.querySelector("#dashboard-page-size"),
+  dashboardPortfolioCount: document.querySelector("#dashboard-portfolio-count"),
+  dashboardPositionCount: document.querySelector("#dashboard-position-count"),
+  dashboardCurrencyCount: document.querySelector("#dashboard-currency-count"),
+  dashboardTableBody: document.querySelector("#dashboard-table-body"),
+  dashboardPageLabel: document.querySelector("#dashboard-page-label"),
+  dashboardResultLabel: document.querySelector("#dashboard-result-label"),
+  dashboardPreviousButton: document.querySelector("#dashboard-previous-button"),
+  dashboardNextButton: document.querySelector("#dashboard-next-button"),
+  currencyBreakdown: document.querySelector("#currency-breakdown"),
+  viewLinks: document.querySelectorAll("[data-view-link]")
 };
 
 class ApiError extends Error {
@@ -562,6 +563,28 @@ function createTableCell(text) {
   return createElement("td", null, text);
 }
 
+function setView(view) {
+  const activeView = view === "workbench" ? "workbench" : "overview";
+  for (const section of document.querySelectorAll("[data-view]")) {
+    section.hidden = section.dataset.view !== activeView;
+  }
+  for (const link of elements.viewLinks) {
+    const isActive = link.dataset.viewLink === activeView;
+    link.classList.toggle("is-active", isActive);
+    link.setAttribute("aria-current", isActive ? "page" : "false");
+  }
+  if (activeView === "workbench") {
+    document.querySelector("#workbench")?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start"
+    });
+  }
+}
+
+function setViewFromHash() {
+  setView(window.location.hash === "#workbench" ? "workbench" : "overview");
+}
+
 async function loadDashboard(page = state.dashboardPage) {
   const params = new URLSearchParams({
     page: String(page),
@@ -603,6 +626,10 @@ async function loadDashboard(page = state.dashboardPage) {
     } else {
       for (const portfolio of portfolioPage.items) {
         const row = document.createElement("tr");
+        row.className = "portfolio-row-is-expandable";
+        row.tabIndex = 0;
+        row.setAttribute("aria-expanded", "false");
+        row.title = "Show positions";
         row.append(
           createTableCell(portfolio.name),
           createTableCell(portfolio.baseCurrency),
@@ -610,6 +637,52 @@ async function loadDashboard(page = state.dashboardPage) {
           createTableCell(formatMoney(portfolio.grossExposure, portfolio.baseCurrency))
         );
         elements.dashboardTableBody.append(row);
+
+        const detailRow = document.createElement("tr");
+        detailRow.className = "portfolio-detail-row";
+        detailRow.hidden = true;
+        const detailCell = createElement("td", "portfolio-detail-cell");
+        detailCell.colSpan = 4;
+        detailCell.textContent = "Loading positions…";
+        detailRow.append(detailCell);
+        elements.dashboardTableBody.append(detailRow);
+
+        const togglePositions = async () => {
+          const expanded = row.getAttribute("aria-expanded") === "true";
+          row.setAttribute("aria-expanded", String(!expanded));
+          detailRow.hidden = expanded;
+          if (expanded || detailCell.dataset.loaded === "true") return;
+          try {
+            const fullPortfolio = await getJson(`/api/v1/portfolios/${portfolio.id}`);
+            detailCell.replaceChildren();
+            if (fullPortfolio.positions.length === 0) {
+              detailCell.textContent = "No positions recorded.";
+            } else {
+              const positions = createElement("div", "position-detail-list");
+              for (const position of fullPortfolio.positions) {
+                const item = createElement("span", "position-detail-item");
+                item.append(
+                  createElement("strong", null, position.instrumentId),
+                  createElement("span", null, `${position.quantity} × ${formatMoney(position.price, fullPortfolio.baseCurrency)}`),
+                  createElement("em", null, formatMoney(position.marketValue, fullPortfolio.baseCurrency))
+                );
+                positions.append(item);
+              }
+              detailCell.append(positions);
+            }
+            detailCell.dataset.loaded = "true";
+          } catch (error) {
+            detailCell.textContent = "Positions could not be loaded.";
+            showError(error);
+          }
+        };
+        row.addEventListener("click", togglePositions);
+        row.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            togglePositions();
+          }
+        });
       }
     }
 
@@ -854,6 +927,8 @@ elements.loadSampleButton.addEventListener("click", () => {
   resetForAnotherPortfolio();
   fillPortfolioForm(samplePortfolio);
   setJourneyState("portfolio");
+  window.location.hash = "workbench";
+  setView("workbench");
   document.querySelector(".portfolio-panel").scrollIntoView({
     behavior: prefersReducedMotion() ? "auto" : "smooth",
     block: "start"
@@ -882,6 +957,10 @@ elements.dashboardNextButton.addEventListener("click", () => {
 elements.dashboardCurrencyFilter.addEventListener("input", event => {
   event.target.value = event.target.value.toUpperCase();
 });
+elements.viewLinks.forEach(link => {
+  link.addEventListener("click", () => setView(link.dataset.viewLink));
+});
+window.addEventListener("hashchange", setViewFromHash);
 elements.baseCurrency.addEventListener("input", event => {
   event.target.value = event.target.value.toUpperCase();
 });
@@ -889,5 +968,6 @@ elements.baseCurrency.addEventListener("input", event => {
 // Populate a useful first-run example without stealing keyboard focus on page load.
 fillPortfolioForm(samplePortfolio, false);
 setJourneyState("portfolio");
+setViewFromHash();
 checkHealth();
 loadDashboard();
