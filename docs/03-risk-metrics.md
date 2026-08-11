@@ -4,33 +4,102 @@ This chapter explains both the finance ideas and their exact implementation in
 `HistoricalSimulationRiskCalculator`. It is an engineering introduction, not
 model approval or trading advice.
 
+## How to read the formulas
+
+GitHub Markdown does not reliably render LaTeX math delimiters such as `\(...\)`
+and `\[...\]`. The formulas in this chapter therefore use plain text inside
+`text` code blocks. They are intentionally written like a calculator or a
+spreadsheet so that the meaning stays visible in GitHub, Rider, and a terminal.
+
+The most common symbols are:
+
+| Symbol | Meaning | Beginner translation |
+|---|---|---|
+| `i` | position/instrument number | “which holding?” |
+| `t` | scenario or date number | “which market day?” |
+| `q` | signed quantity | shares/contracts; negative means short |
+| `p` | current price | price per unit |
+| `V` | market value/exposure | quantity × price |
+| `r` | simple return | percentage move written as a decimal |
+| `P&L` | profit and loss | money gained or lost |
+| `L` | loss | negative P&L, so a bigger positive number is worse |
+| `N` | number of observations | how many scenarios are in the sample |
+| `c` | confidence level | usually `0.95` or `0.99`, not `95` or `99` |
+
+Percentages must be converted to decimals before entering the API: 4% is
+`0.04`, -4% is `-0.04`, and 100% is `1.00`.
+
+## Finance in five minutes
+
+Imagine buying one share for USD 100. If its price becomes USD 103, the simple
+return is 3% (`103 / 100 - 1 = 0.03`). If you own 10 shares, your market value
+is USD 1,000 and the approximate one-period P&L is USD 30 (`1,000 × 0.03`).
+
+Risk measurement asks a different question from performance measurement:
+
+- **Performance:** “How much did I make or lose in this period?”
+- **Risk:** “How large could a loss be, under a stated model and sample?”
+
+A portfolio is a collection of positions. A position is an exposure to an
+instrument. A return is a percentage change in an instrument or factor. The
+engine combines those three things into money P&L, then summarizes many P&Ls.
+
+The word “risk” never has meaning by itself. Always attach the missing labels:
+
+```text
+USD 200 one-day 80% historical VaR
+```
+
+This means: using the supplied one-day historical sample, the 80th-percentile
+loss is USD 200. It does not mean a guaranteed maximum loss, and it says
+nothing about a ten-day horizon, another currency, or a different portfolio.
+
+### Why losses are sorted
+
+Suppose five scenario losses are `-50, -20, 0, 50, 100`. Negative losses are
+profits, zero is break-even, and positive values are losses. Sorting them gives
+the whole empirical distribution from best to worst:
+
+```text
+best/profit                              worst/loss
+      -50       -20        0        50        100
+       |         |         |         |          |
+       +---------+---------+---------+----------+
+```
+
+VaR chooses a location in this ordered list. Expected Shortfall averages the
+values at the bad end. Neither metric predicts a specific next-day result.
+
 ## What this implementation models
 
-The portfolio contains linear positions in one base currency. For position
-\(i\):
+The portfolio contains linear positions in one base currency. For position `i`:
 
-\[
-V_i = q_i p_i
-\]
+```text
+market value V[i] = signed quantity q[i] × current price p[i]
+```
 
-where \(q_i\) is signed quantity and \(p_i\) is current price. A short position
+Here `q[i]` is signed quantity and `p[i]` is current price. A short position
 has a negative quantity.
 
-For historical scenario \(t\), the engine applies observed return \(r_{i,t}\)
-to today's position value:
+For historical scenario `t`, the engine applies observed return `r[i,t]` to
+today's position value:
 
-\[
-P\&L_t = \sum_i V_i r_{i,t}
-\]
+```text
+P&L[t] = sum over every position i of (V[i] × r[i,t])
+```
 
 and defines loss as:
 
-\[
-L_t = -P\&L_t
-\]
+```text
+loss L[t] = - P&L[t]
+```
 
-A positive loss is bad; a negative loss is a profit. Gross exposure is
-\(\sum_i |V_i|\), while net market value is \(\sum_i V_i\).
+A positive loss is bad; a negative loss is a profit. In plain language:
+
+```text
+gross exposure = add the absolute value of every position value
+net market value = add the signed value of every position
+```
 
 ## Position, direction, and market value
 
@@ -55,11 +124,11 @@ public decimal MarketValue => Quantity * Price;
 
 There is no separate `Long`/`Short` boolean that could contradict quantity.
 
-For a one-period return \(r\):
+For a one-period return `r`:
 
-\[
-P\&L = Vr
-\]
+```text
+P&L = exposure V × return r
+```
 
 | Exposure | Return | P&L | Interpretation |
 |---:|---:|---:|---|
@@ -68,7 +137,7 @@ P\&L = Vr
 | -2,000 | +5% | -100 | short loses |
 | -2,000 | -5% | +100 | short gains |
 
-The calculator converts P&L to loss using \(Loss=-P\&L\). Larger positive loss
+The calculator converts P&L to loss using `loss = - P&L`. Larger positive loss
 values are worse, which makes quantile and tail calculations easier to explain.
 
 ### Simplifying instrument assumptions
@@ -93,15 +162,15 @@ Short  5 MSFT at USD 400 = -2,000
 
 Net market value is zero:
 
-\[
-+2{,}000 + (-2{,}000) = 0
-\]
+```text
+net market value = +2,000 + (-2,000) = 0
+```
 
 Gross exposure is:
 
-\[
-|2{,}000| + |-2{,}000| = 4{,}000
-\]
+```text
+gross exposure = absolute(+2,000) + absolute(-2,000) = 4,000
+```
 
 A zero net value does not mean zero risk because the instruments can move
 differently. Gross exposure shows absolute position size, but ignores
@@ -109,9 +178,9 @@ volatility, correlation, liquidity, basis risk, and optionality.
 
 A useful sanity property is:
 
-\[
-GrossExposure \geq |NetMarketValue|
-\]
+```text
+GrossExposure >= absolute(NetMarketValue)
+```
 
 This follows from the triangle inequality and is a good property-based test.
 
@@ -152,24 +221,24 @@ be recorded in data lineage.
 
 The engine accepts simple returns:
 
-\[
-r_t = \frac{P_t}{P_{t-1}} - 1
-\]
+```text
+simple return = (new price / old price) - 1
+```
 
 A conventional asset simple return cannot be below -100%, so the scenario
 factory rejects a value below `-1m`.
 
 Log return is:
 
-\[
-\ell_t = \ln\left(\frac{P_t}{P_{t-1}}\right)
-\]
+```text
+log return = natural log(new price / old price)
+```
 
 Log returns add across time, whereas simple returns compound:
 
-\[
-1 + r_{1..n} = \prod_t (1+r_t)
-\]
+```text
+total growth factor = (1 + return[1]) × (1 + return[2]) × ...
+```
 
 Do not feed log returns into a formula expecting simple returns without an
 explicit conversion. Small daily moves may look similar enough to hide the
@@ -178,19 +247,19 @@ distributions do not appear as unexplained shocks.
 
 ## Historical Value at Risk
 
-VaR at confidence \(c\) is an empirical loss quantile. This project sorts losses
+VaR at confidence `c` is an empirical loss quantile. This project sorts losses
 from smallest to largest and uses the explicitly documented nearest-rank rule:
 
-\[
-rank = \lceil cN \rceil
-\]
+```text
+one-based rank = ceiling(confidence c × number of observations N)
+```
 
 The loss at that one-based rank is VaR, floored at zero. Quantile conventions
 differ between systems, so methodology is part of the contract, not an
 implementation detail.
 
 Interpretation: under the model and sample, a one-period loss should not exceed
-the VaR threshold in approximately \(c\) of periods. It does **not** say what
+the VaR threshold in approximately `c` of periods. It does **not** say what
 the maximum loss is, nor that the probability statement will hold in the next
 period.
 
@@ -208,11 +277,11 @@ convert to losses and sort ascending:
 -50, -20, 0, 50, 100
 ```
 
-At \(c=0.80\) and \(N=5\):
+At `c = 0.80` and `N = 5`:
 
-\[
-rank = \lceil 0.80 \times 5 \rceil = 4
-\]
+```text
+rank = ceiling(0.80 × 5) = 4
+```
 
 The fourth loss is 50, so VaR is 50.
 
@@ -250,18 +319,18 @@ the answer. A risk report must version the rule, not merely say “99% VaR.”
 - currency and valuation time.
 
 One-day VaR is not automatically converted to ten-day VaR by multiplying by
-\(\sqrt{10}\). That scaling assumes behavior that may fail under fat tails,
+`sqrt(10)`. That scaling assumes behavior that may fail under fat tails,
 changing liquidity, serial dependence, and nonlinear products.
 
 ## Expected Shortfall
 
 This project takes:
 
-\[
-k = \max(1, \lceil (1-c)N \rceil)
-\]
+```text
+tail count k = maximum(1, ceiling((1 - confidence c) × N))
+```
 
-and averages the worst \(k\) losses, again floored at zero. Expected Shortfall
+and averages the worst `k` losses, again floored at zero. Expected Shortfall
 describes the average severity in the modeled tail and normally should be at
 least VaR for this empirical convention.
 
@@ -274,11 +343,11 @@ and many governance requirements. See the
 
 ## Expected Shortfall step by step
 
-For \(c=0.80\), \(N=5\):
+For `c = 0.80` and `N = 5`:
 
-\[
-k = \max(1,\lceil(1-0.80)5\rceil) = 1
-\]
+```text
+k = maximum(1, ceiling((1 - 0.80) × 5)) = 1
+```
 
 The worst one loss is 100, so ES is 100.
 
@@ -328,15 +397,16 @@ hypothetical events that may not exist in the window.
 
 The daily P&L volatility is the sample standard deviation:
 
-\[
-s = \sqrt{\frac{\sum_t (P\&L_t - \overline{P\&L})^2}{N-1}}
-\]
+```text
+variance = sum((P&L[t] - average P&L)^2) / (N - 1)
+volatility s = square root(variance)
+```
 
 The example annualizes it using:
 
-\[
-s_{annual} = s\sqrt{252}
-\]
+```text
+annualized volatility = daily volatility s × square root(252)
+```
 
 This assumes independent, identically distributed daily changes and roughly 252
 trading days. That square-root-of-time scaling can be misleading under
@@ -359,7 +429,7 @@ var variance = squaredDeviations / (values.Length - 1);
 return (decimal)Math.Sqrt(variance);
 ```
 
-The denominator is \(N-1\) because the mean was estimated from the same sample.
+The denominator is `N - 1` because the mean was estimated from the same sample.
 With one observation, the implementation returns zero because sample variance
 cannot be estimated with a zero denominator. Do not interpret that as evidence
 of zero risk.
@@ -452,7 +522,7 @@ validated portfolio + historical scenarios
   -> return RiskReport
 ```
 
-For \(S\) scenarios and \(P\) positions:
+For `S` scenarios and `P` positions:
 
 ```text
 revaluation: O(S × P)
@@ -468,9 +538,9 @@ data structures.
 
 The current model assumes:
 
-\[
-\Delta V_i \approx V_i r_i
-\]
+```text
+change in value ΔV[i] ≈ current value V[i] × return r[i]
+```
 
 This is transparent for simple spot-like positions. It is insufficient for:
 
@@ -481,15 +551,15 @@ This is transparent for simple spot-like positions. It is insufficient for:
 - multiple currencies without FX shocks;
 - basis relationships between instruments and proxy factors.
 
-For an option, a local approximation might include:
+For an option, a local approximation might include several sensitivities:
 
-\[
-\Delta V \approx
-  \Delta \Delta S
-  + \frac{1}{2}\Gamma(\Delta S)^2
-  + Vega\,\Delta \sigma
-  + \Theta\,\Delta t
-\]
+```text
+change in option value ≈
+    delta × change in underlying price
+  + 0.5 × gamma × (change in underlying price)^2
+  + vega × change in implied volatility
+  + theta × change in time
+```
 
 Full revaluation reprices each instrument under every scenario. It is usually
 more faithful and more computationally expensive, and it requires complete
@@ -518,13 +588,10 @@ Weaknesses:
 
 Uses exposure and a covariance model:
 
-\[
-\sigma_P = \sqrt{w^\top \Sigma w}
-\]
-
-\[
-VaR_c = z_c \sigma_P
-\]
+```text
+portfolio volatility = square root(weights transpose × covariance matrix × weights)
+parametric VaR = normal-distribution z-score × portfolio volatility
+```
 
 It is fast and decomposable, but linear/normal assumptions miss skew, fat
 tails, and nonlinear products. Factor mapping and covariance estimation are
@@ -626,8 +693,8 @@ is useful historical reading for volatility/correlation estimation and VaR.
 
 ## Finance vocabulary to learn next
 
-- Return: simple return \(P_t/P_{t-1}-1\); log return
-  \(\ln(P_t/P_{t-1})\).
+- Return: `(new price / old price) - 1`; log return is the natural log of
+  `(new price / old price)`.
 - Mark-to-market: valuing a position with current market inputs.
 - P&L explain: attributing value change to market moves, trades, carry, fees,
   and unexplained residual.
