@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using TradingRisk.Api.Contracts;
+using TradingRisk.Api.RiskJobs;
 using TradingRisk.Application.Portfolios;
 using TradingRisk.Application.Risk;
 
@@ -102,6 +103,15 @@ public sealed class PortfolioApiTests
         Assert.Equal(200m, report.ValueAtRisk);
         Assert.Equal(1_200m, report.ExpectedShortfall);
         Assert.Equal(5, report.ScenarioCount);
+
+        using var analyticsResponse = await client.GetAsync(
+            $"/api/v1/portfolios/{portfolio.Id}/analytics",
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, analyticsResponse.StatusCode);
+        var analytics = await analyticsResponse.Content
+            .ReadFromJsonAsync<PortfolioAnalyticsDto>(cancellationToken);
+        Assert.NotNull(analytics);
+        Assert.Equal(100m, Assert.Single(analytics.Positions, p => p.InstrumentId == "AAPL").Delta);
     }
 
     [Fact]
@@ -156,6 +166,42 @@ public sealed class PortfolioApiTests
             .ToArray());
     }
 
+    [Fact]
+    public async Task QueuedRiskJobIsAcceptedAndCompletedByBackgroundWorker()
+    {
+        DisableConfigurationReload();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var portfolio = await CreatePortfolioReturningAsync(client, new CreatePortfolioRequest(
+            "Queued book", "USD", [new CreatePositionRequest("AAPL", 10m, 200m)]), cancellationToken);
+
+        using var response = await client.PostAsJsonAsync(
+            "/api/v1/risk-jobs",
+            new SubmitRiskJobRequest(
+                portfolio.Id,
+                0.80m,
+                [new HistoricalScenarioRequest(
+                    new DateOnly(2026, 1, 2), new Dictionary<string, decimal> { ["AAPL"] = -0.1m })]),
+            cancellationToken);
+        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
+        var accepted = await response.Content.ReadFromJsonAsync<RiskJobSnapshot>(cancellationToken);
+        Assert.NotNull(accepted);
+
+        RiskJobSnapshot? completed = null;
+        for (var attempt = 0; attempt < 20 && completed?.Status != "succeeded"; attempt++)
+        {
+            using var statusResponse = await client.GetAsync(
+                $"/api/v1/risk-jobs/{accepted.JobId}", cancellationToken);
+            completed = await statusResponse.Content.ReadFromJsonAsync<RiskJobSnapshot>(cancellationToken);
+            if (completed?.Status != "succeeded") await Task.Delay(25, cancellationToken);
+        }
+
+        Assert.NotNull(completed);
+        Assert.Equal("succeeded", completed.Status);
+        Assert.NotNull(completed.Result);
+    }
+
     private static SqliteWebApplicationFactory CreateFactory()
     {
         return new SqliteWebApplicationFactory();
@@ -194,5 +240,15 @@ public sealed class PortfolioApiTests
             request,
             cancellationToken);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    private static async Task<PortfolioDto> CreatePortfolioReturningAsync(
+        HttpClient client,
+        CreatePortfolioRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var response = await client.PostAsJsonAsync("/api/v1/portfolios", request, cancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<PortfolioDto>(cancellationToken))!;
     }
 }

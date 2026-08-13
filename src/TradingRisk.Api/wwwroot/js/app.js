@@ -26,7 +26,8 @@ const state = {
   positionRowCounter: 0,
   scenarioRowCounter: 0,
   dashboardPage: 1,
-  dashboardTotalPages: 0
+  dashboardTotalPages: 0,
+  accessToken: null
 };
 
 const elements = {
@@ -55,6 +56,7 @@ const elements = {
   scenarioTableHead: document.querySelector("#scenario-table-head"),
   scenarioTableBody: document.querySelector("#scenario-table-body"),
   calculateRiskButton: document.querySelector("#calculate-risk-button"),
+  queueRiskButton: document.querySelector("#queue-risk-button"),
   riskReport: document.querySelector("#risk-report"),
   reportSubtitle: document.querySelector("#report-subtitle"),
   reportTime: document.querySelector("#report-time"),
@@ -90,6 +92,11 @@ const elements = {
   dashboardNextButton: document.querySelector("#dashboard-next-button"),
   currencyBreakdown: document.querySelector("#currency-breakdown"),
   viewLinks: document.querySelectorAll("[data-view-link]")
+  ,loginForm: document.querySelector("#login-form")
+  ,loginUser: document.querySelector("#login-user")
+  ,loginRole: document.querySelector("#login-role")
+  ,logoutButton: document.querySelector("#logout-button")
+  ,authStatus: document.querySelector("#auth-status")
 };
 
 class ApiError extends Error {
@@ -450,6 +457,37 @@ async function submitRisk(event) {
   }
 }
 
+async function submitQueuedRisk() {
+  if (!state.portfolio) return;
+  hideError();
+  setButtonBusy(elements.queueRiskButton, true, "Queueing");
+  try {
+    const job = await sendJson("/api/v1/risk-jobs", "POST", {
+      portfolioId: state.portfolio.id,
+      ...readRiskForm()
+    });
+    showToast(`Job ${job.jobId} queued. Waiting for a worker…`);
+    const result = await waitForRiskJob(job.jobId);
+    renderRiskReport(result);
+    setJourneyState("report");
+    showToast("Queued risk calculation completed.");
+  } catch (error) {
+    showError(error);
+  } finally {
+    setButtonBusy(elements.queueRiskButton, false, "Queue calculation", "⇢");
+  }
+}
+
+async function waitForRiskJob(jobId) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const job = await getJson(`/api/v1/risk-jobs/${jobId}`);
+    if (job.status === "succeeded") return job.result;
+    if (job.status === "failed") throw new Error(job.error || "Queued risk job failed.");
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  throw new Error("Queued risk job did not finish within 30 seconds.");
+}
+
 function renderRiskReport(report) {
   const confidencePercent = report.confidenceLevel * 100;
   const currency = report.currency;
@@ -716,8 +754,10 @@ async function loadDashboard(page = state.dashboardPage) {
 }
 
 async function getJson(url) {
+  const headers = { Accept: "application/json" };
+  if (state.accessToken) headers.Authorization = `Bearer ${state.accessToken}`;
   const response = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers,
     cache: "no-store"
   });
   const body = await response.json().catch(() => null);
@@ -735,12 +775,14 @@ async function getJson(url) {
 }
 
 async function sendJson(url, method, payload) {
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json"
+  };
+  if (state.accessToken) headers.Authorization = `Bearer ${state.accessToken}`;
   const response = await fetch(url, {
     method,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json"
-    },
+    headers,
     body: JSON.stringify(payload)
   });
 
@@ -760,6 +802,29 @@ async function sendJson(url, method, payload) {
   }
 
   return body;
+}
+
+async function acquireDevelopmentToken(userName = elements.loginUser.value, role = elements.loginRole.value) {
+  // The endpoint exists only in Development/Testing; production should use the
+  // organization's OIDC login flow instead of minting a browser token here.
+  const response = await fetch("/api/v1/auth/token", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ userName, role })
+  });
+  if (response.ok) {
+    const body = await response.json();
+    state.accessToken = body.accessToken;
+    elements.authStatus.textContent = `Signed in as ${userName} · ${role}.`;
+    return true;
+  }
+  elements.authStatus.textContent = "Sign-in is available only in Development/Testing.";
+  return false;
+}
+
+function signOut() {
+  state.accessToken = null;
+  elements.authStatus.textContent = "Signed out. Choose a role to sign in again.";
 }
 
 async function checkHealth() {
@@ -940,6 +1005,7 @@ elements.portfolioForm.addEventListener("submit", submitPortfolio);
 elements.editPortfolioButton.addEventListener("click", resetForAnotherPortfolio);
 elements.addScenarioButton.addEventListener("click", () => addScenarioRow());
 elements.riskForm.addEventListener("submit", submitRisk);
+elements.queueRiskButton.addEventListener("click", submitQueuedRisk);
 elements.dismissErrorButton.addEventListener("click", hideError);
 elements.refreshDashboardButton.addEventListener("click", () => loadDashboard());
 elements.dashboardSearchButton.addEventListener("click", () => {
@@ -960,6 +1026,16 @@ elements.dashboardCurrencyFilter.addEventListener("input", event => {
 elements.viewLinks.forEach(link => {
   link.addEventListener("click", () => setView(link.dataset.viewLink));
 });
+elements.loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await acquireDevelopmentToken();
+    await loadDashboard();
+  } catch (error) {
+    showError(error);
+  }
+});
+elements.logoutButton.addEventListener("click", signOut);
 window.addEventListener("hashchange", setViewFromHash);
 elements.baseCurrency.addEventListener("input", event => {
   event.target.value = event.target.value.toUpperCase();
@@ -970,4 +1046,4 @@ fillPortfolioForm(samplePortfolio, false);
 setJourneyState("portfolio");
 setViewFromHash();
 checkHealth();
-loadDashboard();
+acquireDevelopmentToken().finally(() => loadDashboard());

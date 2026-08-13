@@ -150,6 +150,30 @@ code {
   text-transform: uppercase;
 }
 
+.auth-panel {
+  display: flex;
+  max-width: 1296px;
+  margin: 0 auto 28px;
+  padding: 18px 24px;
+  gap: 24px;
+  align-items: end;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-medium);
+  background: rgb(255 254 250 / 85%);
+  box-shadow: var(--shadow);
+}
+
+.auth-panel h2 { margin: 2px 0 0; font-size: 20px; }
+.auth-panel p:not(.eyebrow) { margin: 3px 0 0; color: var(--ink-soft); }
+.auth-form { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.auth-form .field { min-width: 150px; }
+
+@media (max-width: 760px) {
+  .auth-panel { margin-inline: 20px; align-items: stretch; flex-direction: column; }
+  .auth-form { align-items: stretch; }
+}
+
 .status-dot {
   width: 8px;
   height: 8px;

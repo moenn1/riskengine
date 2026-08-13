@@ -30,6 +30,8 @@ The browser workbench performs adapter responsibilities:
 6. display the returned risk report and scenario P&L distribution;
 7. translate HTTP/Problem Details failures into readable feedback; and
 8. show whether the API health endpoint responds.
+9. let the learner sign in with development roles and choose synchronous or
+   queued risk calculation.
 
 It does **not**:
 
@@ -60,6 +62,20 @@ domain validation still run on the server.
 
 There is no `package.json`, `node_modules`, webpack, Vite, npm, or frontend
 dependency. The browser natively understands all three asset types.
+
+### Authentication and queued work
+
+The sign-in panel calls the Development/Testing-only `/api/v1/auth/token`
+endpoint and stores the short-lived bearer token in memory. `getJson` and
+`sendJson` attach it as an `Authorization: Bearer ...` header. Signing out clears
+that value. This is a teaching flow, not a production login: a real browser
+would use an OIDC authorization-code flow with an approved identity provider.
+
+The normal **Calculate risk** button calls the synchronous endpoint. **Queue
+calculation** posts to `/api/v1/risk-jobs`, then polls the returned job ID until
+the worker reports `succeeded` or `failed`. Polling is simple and visible for
+learning; production clients may use server-sent events, WebSockets, or a
+notification service when that is justified.
 
 ### Java/Spring comparison
 

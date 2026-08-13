@@ -150,7 +150,17 @@ change a risk result.
 
 ## Milestone 4 — asynchronous risk jobs
 
-Build:
+Status: the local bounded-channel version is implemented; durable messaging remains an exercise.
+
+Implemented:
+
+- `POST /api/v1/risk-jobs` returns `202 Accepted` and a job location;
+- bounded `Channel<T>` broker adapter;
+- `BackgroundService` worker with a fresh scoped handler graph;
+- queued/running/succeeded/failed state and UI polling;
+- visible development JWT login and role policy enforcement.
+
+Build next:
 
 - `POST /risk-jobs` returning `202 Accepted`;
 - `BackgroundService` for local development;
@@ -173,6 +183,12 @@ Exit test: submitting the same idempotency key twice creates one logical job,
 and redelivery cannot duplicate the published result.
 
 ## Milestone 5 — expand the risk engine
+
+Before starting the distributed milestones, read the [roadmap informed by the
+bank-risk role description](14-role-informed-bank-risk-roadmap.md). It maps the
+concrete C#/WinForms/WPF/Oracle/MongoDB/ElasticSearch/Symphony/Jenkins clues to
+the exercises below and explains why the sample does not add infrastructure
+without a measured need.
 
 Add in this order:
 

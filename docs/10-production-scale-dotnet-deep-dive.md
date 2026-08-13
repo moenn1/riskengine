@@ -5,9 +5,10 @@ boundary. It now has durable local SQLite portfolio storage. This chapter
 explains what changes when that learning foundation becomes a shared,
 asynchronous, observable, secure, and horizontally scaled platform.
 
-Most features in this chapter are **not implemented yet**. They are a design
-map for the exercises, not a claim that the learning baseline is already a
-production risk platform.
+Some features are now implemented as deliberately local learning versions:
+JWT policies, a bounded in-process risk-job channel, a background worker, and
+job polling. Durable messaging, distributed job state, external identity, and
+production observability remain exercises. This chapter distinguishes the two.
 
 ## 1. First understand the current operating model
 
@@ -28,7 +29,7 @@ Properties:
 - each process/container still has unrelated state unless it shares the same
   deliberately mounted file, which is not a horizontal-scaling architecture;
 - risk calculation uses request CPU and must finish before the response;
-- no authentication or authorization exists;
+- Development/Testing JWT authentication and reader/operator authorization exist;
 - health verifies SQLite connectivity but not every query or dependency;
 - logs are local console output unless the host collects them;
 - no calculation input/result is durably reproducible.
@@ -370,6 +371,9 @@ A bound provides backpressure. An unbounded queue can accept work faster than
 the worker completes it until memory is exhausted.
 
 A `BackgroundService` reads until shutdown using its `stoppingToken`.
+
+The repository's `IRiskJobBroker`/`InMemoryRiskJobBroker` demonstrates this local
+version at `POST /api/v1/risk-jobs` and `GET /api/v1/risk-jobs/{jobId}`.
 
 Limitations of an in-process channel:
 

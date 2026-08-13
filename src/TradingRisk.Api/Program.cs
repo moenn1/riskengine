@@ -1,11 +1,15 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using TradingRisk.Api.ErrorHandling;
 using TradingRisk.Api.Options;
 using TradingRisk.Application.Portfolios;
 using TradingRisk.Application.Risk;
 using TradingRisk.Domain.Risk;
 using TradingRisk.Infrastructure.Persistence;
+using TradingRisk.Api.RiskJobs;
 
 // Top-level statements are compiled into a generated Main method. Execution begins here,
 // just as it begins in Java's public static void main(String[] args).
@@ -17,6 +21,33 @@ var builder = WebApplication.CreateBuilder(args);
 // AddOptions -> @ConfigurationProperties
 // Registration describes what the service provider can create; it does not yet build it.
 builder.Services.AddControllers();
+builder.Services.AddOptions<SecurityOptions>()
+    .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
+    .Validate(options => Encoding.UTF8.GetByteCount(options.DemoSigningKey) >= 32,
+        "Security:DemoSigningKey must be at least 32 bytes for the learning HMAC example.")
+    .ValidateOnStart();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var security = builder.Configuration
+            .GetSection(SecurityOptions.SectionName)
+            .Get<SecurityOptions>() ?? new SecurityOptions();
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = security.Issuer,
+            ValidateAudience = true,
+            ValidAudience = security.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(security.DemoSigningKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("RiskReader", policy => policy.RequireRole("risk-reader", "risk-operator"))
+    .AddPolicy("RiskOperator", policy => policy.RequireRole("risk-operator"));
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -69,7 +100,11 @@ builder.Services.AddScoped<CreatePortfolioHandler>();
 builder.Services.AddScoped<GetPortfolioHandler>();
 builder.Services.AddScoped<SearchPortfoliosHandler>();
 builder.Services.AddScoped<GetPortfolioStatisticsHandler>();
+builder.Services.AddScoped<GetPortfolioAnalyticsHandler>();
 builder.Services.AddScoped<CalculatePortfolioRiskHandler>();
+builder.Services.AddSingleton<TradingRisk.Api.Security.DemoTokenService>();
+builder.Services.AddSingleton<IRiskJobBroker, InMemoryRiskJobBroker>();
+builder.Services.AddHostedService<RiskJobWorker>();
 
 // Build creates the root service provider and WebApplication. app.Run below, not Build,
 // starts Kestrel and waits for shutdown.
@@ -95,6 +130,8 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())

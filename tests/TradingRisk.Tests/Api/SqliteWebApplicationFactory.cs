@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -35,6 +36,13 @@ internal sealed class SqliteWebApplicationFactory : WebApplicationFactory<Progra
         // registered context options guarantees the test never falls back to the local file.
         builder.ConfigureServices(services =>
         {
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = "Test";
+                    options.DefaultChallengeScheme = "Test";
+                })
+                .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                    "Test", _ => { });
             services.RemoveAll<RiskDbContext>();
             services.RemoveAll<DbContextOptions<RiskDbContext>>();
             services.RemoveAll<IDbContextOptionsConfiguration<RiskDbContext>>();

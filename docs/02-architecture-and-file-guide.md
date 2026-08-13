@@ -101,6 +101,7 @@ Domain. It knows the use cases but not ASP.NET Core or a database.
 | `Portfolios/GetPortfolio.cs` | Small query handler demonstrating lookup, strongly typed ID conversion, cancellation, and not-found behavior. |
 | `Portfolios/SearchPortfolios.cs` | Search/statistics messages, DTOs, validation/normalization, paging math, and handlers for the LINQ-backed read side. |
 | `Risk/CalculatePortfolioRisk.cs` | Query/input/output records and handler coordinating repository, scenario mapping, risk strategy, and `TimeProvider`. |
+| `Portfolios/GetPortfolioAnalytics.cs` | Read model exposing linear market value, exposure, and educational Delta; this is the seam where a product-specific pricer/Greeks service can be introduced. |
 
 Command and query classes are kept together with their handler here because the
 slice is small. A growing codebase can split files or organize by feature, but
@@ -140,9 +141,18 @@ warnings-as-errors security audit.
 | File | Purpose and lesson |
 |---|---|
 | `Program.cs` | Top-level entry point, middleware order, options validation, DI lifetimes, rate limiting, health/OpenAPI endpoints, and application startup. The visible partial `Program` enables in-process tests; the `Testing` environment skips HTTPS redirection because `TestServer` has no TLS listener. |
+| `RiskJobs/IRiskJobQueue.cs` | `IRiskJobBroker` port and job snapshots. The API depends on this abstraction instead of a concrete queue technology. |
+| `RiskJobs/InMemoryRiskJobQueue.cs` | `InMemoryRiskJobBroker`, a bounded `Channel<T>` implementation with backpressure and in-memory job state. It is a learning broker, not durable production messaging. |
+| `RiskJobs/RiskJobWorker.cs` | Hosted background consumer that creates a scoped handler graph for each job and records success/failure. |
+| `Contracts/RiskJobRequests.cs` | HTTP input for asynchronous risk requests, mapped to the same Application query as the synchronous endpoint. |
+| `Controllers/RiskJobsController.cs` | `202 Accepted` submission and status/result polling endpoint. |
+| `Options/SecurityOptions.cs` | Strongly typed JWT issuer/audience/demo-key settings with startup validation. |
+| `Security/DemoTokenService.cs` | Development-only JWT minting example; production should validate an external OIDC issuer instead. |
+| `Controllers/AuthController.cs` | Visible learning token endpoint, disabled outside Development/Testing. |
 | `wwwroot/index.html` | Semantic, progressively organized browser workbench for creating a book, entering scenarios, and reading a risk report. ASP.NET Core serves it as the default file for `/`. |
 | `wwwroot/css/site.css` | Responsive visual system, component layout, focus states, chart styling, and reduced-motion behavior. It uses native CSS rather than a frontend package. |
 | `wwwroot/js/app.js` | Browser adapter that manages UI state, builds request DTO-shaped JSON, calls the real API with `fetch`, handles Problem Details, and renders returned risk metrics without recalculating them. |
+| `wwwroot/index.html` | Also contains the demo sign-in panel and synchronous versus queued risk actions. |
 | `Contracts/PortfolioRequests.cs` | JSON request shapes and boundary-level Data Annotations. On positional records, ASP.NET Core validation metadata targets constructor parameters. Decimal range limits use invariant culture so deployment locale cannot change validation. Contracts are separate from domain types to prevent transport concerns leaking inward. |
 | `Contracts/PortfolioQueryRequests.cs` | Query-string search contract with bounds for filters and pagination. |
 | `Controllers/PortfoliosController.cs` | Versioned REST adapter for create/get/search/statistics/calculate. It remains thin, passes cancellation, maps contracts, and uses source-generated/cached structured logging. |

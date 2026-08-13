@@ -3,10 +3,19 @@
 ### Liveness/readiness starting point
 GET {{host}}/health
 
+### Development-only token (copy accessToken into @token)
+POST {{host}}/api/v1/auth/token
+Content-Type: application/json
+
+{"userName":"http-learner","role":"risk-operator"}
+
+@token = paste-token-here
+
 ### Create a two-position portfolio
 # @name createPortfolio
 POST {{host}}/api/v1/portfolios
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "Learning Book",
@@ -30,16 +39,20 @@ Content-Type: application/json
 
 ### Read the portfolio
 GET {{host}}/api/v1/portfolios/{{portfolioId}}
+Authorization: Bearer {{token}}
 
 ### Search with LINQ translated by EF Core (Where + Any + Count + paging)
 GET {{host}}/api/v1/portfolios?name=Learning&baseCurrency=USD&instrumentId=AAPL&minimumPositionCount=2&page=1&pageSize=10
+Authorization: Bearer {{token}}
 
 ### Grouped projection (GroupBy + Count + SelectMany)
 GET {{host}}/api/v1/portfolios/statistics/by-currency
+Authorization: Bearer {{token}}
 
 ### Calculate 80% historical VaR and Expected Shortfall
 POST {{host}}/api/v1/portfolios/{{portfolioId}}/risk
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "confidenceLevel": 0.80,

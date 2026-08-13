@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using TradingRisk.Api.Contracts;
 using TradingRisk.Api.Options;
@@ -12,12 +13,14 @@ namespace TradingRisk.Api.Controllers;
 /// Thin HTTP adapter. Business decisions belong in application handlers or the domain model.
 /// </summary>
 [ApiController]
+[Authorize(Policy = "RiskReader")]
 [Route("api/v1/portfolios")]
 public sealed partial class PortfoliosController(
     CreatePortfolioHandler createPortfolio,
     GetPortfolioHandler getPortfolio,
     SearchPortfoliosHandler searchPortfolios,
     GetPortfolioStatisticsHandler getPortfolioStatistics,
+    GetPortfolioAnalyticsHandler getPortfolioAnalytics,
     CalculatePortfolioRiskHandler calculateRisk,
     IOptions<RiskApiOptions> options,
     ILogger<PortfoliosController> logger) : ControllerBase
@@ -54,6 +57,7 @@ public sealed partial class PortfoliosController(
     }
 
     [HttpPost]
+    [Authorize(Policy = "RiskOperator")]
     [ProducesResponseType<PortfolioDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PortfolioDto>> CreateAsync(
@@ -91,6 +95,16 @@ public sealed partial class PortfoliosController(
         CancellationToken cancellationToken)
     {
         return Ok(await getPortfolio.HandleAsync(portfolioId, cancellationToken));
+    }
+
+    [HttpGet("{portfolioId:guid}/analytics")]
+    [ProducesResponseType<PortfolioAnalyticsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PortfolioAnalyticsDto>> GetAnalyticsAsync(
+        Guid portfolioId,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await getPortfolioAnalytics.HandleAsync(portfolioId, cancellationToken));
     }
 
     [HttpPost("{portfolioId:guid}/risk")]

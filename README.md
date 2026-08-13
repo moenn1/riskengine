@@ -14,8 +14,11 @@ The implemented vertical slice lets you:
 4. explore that workflow in a responsive browser workbench;
 5. persist portfolios in an embedded SQLite database through EF Core;
 6. search and aggregate portfolios through LINQ translated to SQL;
-7. observe validation and errors through standard HTTP Problem Details; and
-8. test the domain, application handler, relational adapter, static UI, and
+7. inspect linear position analytics and sensitivities at a separate API boundary;
+8. authenticate with development JWTs and authorize reader/operator policies;
+9. submit queued risk jobs through a bounded in-process broker and worker;
+10. observe validation and errors through standard HTTP Problem Details; and
+11. test the domain, application handler, relational adapter, static UI, and
    complete HTTP flow.
 
 This is an educational risk engine, not a trading or regulatory system. Its
@@ -40,6 +43,8 @@ code. Use this study order:
 11. [GitHub-rendered Mermaid diagrams](docs/06-mermaid-diagrams.md)
 12. [Production-scale .NET deep dive](docs/10-production-scale-dotnet-deep-dive.md)
 13. [Hands-on exercises](docs/04-exercises.md)
+14. [bank-risk-inspired architecture, queues, and security](docs/13-bank-risk-inspired-architecture-queues-and-security.md)
+15. [Roadmap informed by the bank-risk role description](docs/14-role-informed-bank-risk-roadmap.md)
 
 The C# and project files also contain teaching comments at decisions where a
 Spring developer is likely to ask “why,” while the docs hold the fuller
@@ -120,8 +125,8 @@ is `http://localhost:8080/health`.
 The learning path turns these omissions into later milestones: PostgreSQL or
 another production database, explicit transaction workflows and optimistic
 concurrency, market-data ingestion,
-background jobs and messaging, idempotency, an outbox, caching, authentication
-and authorization, OpenTelemetry, resilience, load testing, advanced
+background jobs and messaging, idempotency, an outbox, caching, OpenTelemetry,
+resilience, load testing, advanced
 instrument pricing, backtesting, and regulatory reporting.
 
 That order is intentional: first understand a complete request and its domain

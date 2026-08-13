@@ -2,6 +2,7 @@
     <ItemGroup>
         <!-- Package versions come from Directory.Packages.props. -->
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
         <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
         <!-- dotnet-ef loads the startup project to discover hosting configuration. -->
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design">

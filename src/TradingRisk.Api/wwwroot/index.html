@@ -32,6 +32,20 @@
     </nav>
   </header>
 
+  <section class="auth-panel" aria-labelledby="auth-title">
+    <div>
+      <p class="eyebrow">DEMO SECURITY · JWT</p>
+      <h2 id="auth-title">Sign in to the learning API</h2>
+      <p id="auth-status">Not signed in. Choose a role to see its permissions.</p>
+    </div>
+    <form id="login-form" class="auth-form">
+      <label class="field"><span>User</span><input id="login-user" value="browser-learner" maxlength="50" required></label>
+      <label class="field"><span>Role</span><select id="login-role"><option value="risk-reader">Risk reader</option><option value="risk-operator">Risk operator</option></select></label>
+      <button class="button button-primary button-small" type="submit">Sign in</button>
+      <button class="button button-quiet button-small" id="logout-button" type="button">Sign out</button>
+    </form>
+  </section>
+
   <main>
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
@@ -352,6 +366,10 @@
             <button class="button button-accent" id="calculate-risk-button" type="submit">
               Calculate risk
               <span aria-hidden="true">↗</span>
+            </button>
+            <button class="button button-quiet" id="queue-risk-button" type="button">
+              Queue calculation
+              <span aria-hidden="true">⇢</span>
             </button>
           </div>
         </form>
