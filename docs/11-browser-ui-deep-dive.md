@@ -65,7 +65,8 @@ dependency. The browser natively understands all three asset types.
 
 ### Authentication and queued work
 
-The sign-in panel calls the Development/Testing-only `/api/v1/auth/token`
+The page starts locked; protected content is hidden until sign-in succeeds. The
+sign-in panel calls the Development/Testing-only `/api/v1/auth/token`
 endpoint and stores the short-lived bearer token in memory. `getJson` and
 `sendJson` attach it as an `Authorization: Bearer ...` header. Signing out clears
 that value. This is a teaching flow, not a production login: a real browser

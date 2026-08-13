@@ -97,6 +97,8 @@ const elements = {
   ,loginRole: document.querySelector("#login-role")
   ,logoutButton: document.querySelector("#logout-button")
   ,authStatus: document.querySelector("#auth-status")
+  ,authPermissions: document.querySelector("#auth-permissions")
+  ,jobStatus: document.querySelector("#job-status")
 };
 
 class ApiError extends Error {
@@ -466,6 +468,7 @@ async function submitQueuedRisk() {
       portfolioId: state.portfolio.id,
       ...readRiskForm()
     });
+    elements.jobStatus.textContent = `Job ${job.jobId} · queued`;
     showToast(`Job ${job.jobId} queued. Waiting for a worker…`);
     const result = await waitForRiskJob(job.jobId);
     renderRiskReport(result);
@@ -481,6 +484,7 @@ async function submitQueuedRisk() {
 async function waitForRiskJob(jobId) {
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const job = await getJson(`/api/v1/risk-jobs/${jobId}`);
+    elements.jobStatus.textContent = `Job ${jobId} · ${job.status}`;
     if (job.status === "succeeded") return job.result;
     if (job.status === "failed") throw new Error(job.error || "Queued risk job failed.");
     await new Promise(resolve => setTimeout(resolve, 300));
@@ -815,7 +819,11 @@ async function acquireDevelopmentToken(userName = elements.loginUser.value, role
   if (response.ok) {
     const body = await response.json();
     state.accessToken = body.accessToken;
+    document.body.classList.remove("auth-locked");
     elements.authStatus.textContent = `Signed in as ${userName} · ${role}.`;
+    elements.authPermissions.textContent = role === "risk-operator"
+      ? "Permissions: read portfolios, calculate risk, create portfolios, queue jobs."
+      : "Permissions: read portfolios, calculate risk, queue jobs. Creation is restricted.";
     return true;
   }
   elements.authStatus.textContent = "Sign-in is available only in Development/Testing.";
@@ -824,7 +832,9 @@ async function acquireDevelopmentToken(userName = elements.loginUser.value, role
 
 function signOut() {
   state.accessToken = null;
+  document.body.classList.add("auth-locked");
   elements.authStatus.textContent = "Signed out. Choose a role to sign in again.";
+  elements.authPermissions.textContent = "Protected content is locked.";
 }
 
 async function checkHealth() {
@@ -1046,4 +1056,3 @@ fillPortfolioForm(samplePortfolio, false);
 setJourneyState("portfolio");
 setViewFromHash();
 checkHealth();
-acquireDevelopmentToken().finally(() => loadDashboard());

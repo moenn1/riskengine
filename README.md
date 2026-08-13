@@ -45,6 +45,8 @@ code. Use this study order:
 13. [Hands-on exercises](docs/04-exercises.md)
 14. [bank-risk-inspired architecture, queues, and security](docs/13-bank-risk-inspired-architecture-queues-and-security.md)
 15. [Roadmap informed by the bank-risk role description](docs/14-role-informed-bank-risk-roadmap.md)
+16. [Non-regression testing in finance](docs/15-non-regression-testing-in-finance.md)
+17. [ASP.NET Core security deep dive](docs/16-aspnet-core-security-deep-dive.md)
 
 The C# and project files also contain teaching comments at decisions where a
 Spring developer is likely to ask “why,” while the docs hold the fuller

@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/css/site.css">
   <script type="module" src="/js/app.js"></script>
 </head>
-<body>
+<body class="auth-locked">
   <a class="skip-link" href="#workbench">Skip to the workbench</a>
 
   <header class="site-header">
@@ -33,10 +33,11 @@
   </header>
 
   <section class="auth-panel" aria-labelledby="auth-title">
-    <div>
+    <div class="auth-copy">
       <p class="eyebrow">DEMO SECURITY · JWT</p>
       <h2 id="auth-title">Sign in to the learning API</h2>
       <p id="auth-status">Not signed in. Choose a role to see its permissions.</p>
+      <small id="auth-permissions">Protected content is locked.</small>
     </div>
     <form id="login-form" class="auth-form">
       <label class="field"><span>User</span><input id="login-user" value="browser-learner" maxlength="50" required></label>
@@ -371,6 +372,7 @@
               Queue calculation
               <span aria-hidden="true">⇢</span>
             </button>
+            <output class="job-status" id="job-status" aria-live="polite">No queued job submitted.</output>
           </div>
         </form>
       </article>
