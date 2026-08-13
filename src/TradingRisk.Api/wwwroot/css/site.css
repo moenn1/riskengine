@@ -688,7 +688,8 @@ main,
   font-weight: 700;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: 46px;
   padding: 10px 12px;
@@ -699,12 +700,22 @@ main,
   background: var(--surface);
   font-family: var(--mono);
   font-size: 14px;
+  appearance: none;
   transition:
     border-color 140ms ease,
     box-shadow 140ms ease;
 }
 
-.field input:focus {
+.field select {
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--teal) 50%), linear-gradient(135deg, var(--teal) 50%, transparent 50%);
+  background-position: calc(100% - 17px) 20px, calc(100% - 12px) 20px;
+  background-repeat: no-repeat;
+  background-size: 5px 5px, 5px 5px;
+}
+
+.field input:focus,
+.field select:focus {
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgb(13 112 105 / 13%);
 }
