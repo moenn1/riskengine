@@ -106,6 +106,18 @@ var riskDatabaseConnection = builder.Configuration.GetConnectionString("RiskData
     ?? throw new InvalidOperationException(
         "ConnectionStrings:RiskDatabase is required.");
 
+var learningEnvironment = builder.Environment.IsDevelopment() ||
+    builder.Environment.IsEnvironment("Testing");
+var riskJobsProvider = builder.Configuration["RiskJobs:Provider"] ?? "in-memory";
+if (!learningEnvironment &&
+    (riskDatabaseConnection.Contains("App_Data", StringComparison.OrdinalIgnoreCase) ||
+     !string.Equals(riskJobsProvider, "durable", StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException(
+        "Production requires a managed database and RiskJobs:Provider=durable. " +
+        "The SQLite and in-memory broker adapters are learning-only.");
+}
+
 // AddDbContext and the EF repositories are scoped by request. This is the .NET analogue
 // of a transaction-scoped JPA EntityManager/repository graph.
 builder.Services.AddTradingRiskPersistence(

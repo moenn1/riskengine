@@ -377,6 +377,12 @@ A `BackgroundService` reads until shutdown using its `stoppingToken`.
 The repository's `IRiskJobBroker`/`InMemoryRiskJobBroker` demonstrates this local
 version at `POST /api/v1/risk-jobs` and `GET /api/v1/risk-jobs/{jobId}`.
 
+The composition root fails closed in Production when the connection string still
+points at the local SQLite file or `RiskJobs:Provider` is not `durable`. This is
+intentional: an application should not silently deploy a process-local queue and
+call it a production message broker. Register an approved durable adapter and a
+managed database in the deployment-specific configuration first.
+
 Limitations of an in-process channel:
 
 - queued work is lost on process failure/restart;
