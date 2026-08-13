@@ -65,11 +65,12 @@ role produce **403 Forbidden**.
 
 ## Browser flow
 
-The page starts locked; protected content is hidden until the user signs in. The
-sign-in panel calls the demo endpoint, stores the short-lived token only in
-JavaScript memory, and adds the bearer header to `getJson`/`sendJson`. Sign out
-locks the content again and clears the token. This avoids putting a token in a
-URL or local storage for the learning example. Production browser applications normally use the OAuth2
+`/login.html` is a separate page. The workbench redirects there when no session
+token exists, so protected content is not briefly rendered before login. The
+login page stores the short-lived demo token in `sessionStorage`, and the
+workbench adds it to `getJson`/`sendJson`. Sign out clears the session and
+redirects back to the login page. This is still only a learning flow; production
+browser applications normally use the OAuth2
 authorization-code flow with PKCE and an approved identity provider.
 
 ## Security boundaries to add next

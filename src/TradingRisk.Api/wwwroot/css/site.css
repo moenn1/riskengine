@@ -69,6 +69,11 @@ code {
   display: none !important;
 }
 
+/* Prevent a protected workbench flash while app.js checks sessionStorage. */
+.app-loading > * {
+  display: none !important;
+}
+
 .skip-link {
   position: fixed;
   top: 10px;
@@ -229,6 +234,47 @@ code {
   background: var(--coral);
   box-shadow: 0 0 0 4px rgb(200 92 74 / 14%);
 }
+
+.identity-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.login-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 75% 15%, rgb(214 238 112 / 35%), transparent 24rem),
+    linear-gradient(145deg, #f9f8f3 0, var(--paper) 65%);
+}
+
+.login-shell {
+  display: grid;
+  min-height: 100vh;
+  padding: 32px 20px;
+  place-items: center;
+}
+
+.login-card {
+  width: min(100%, 500px);
+  padding: clamp(28px, 6vw, 52px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-large);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.login-brand { margin-bottom: 44px; }
+.login-card h1 { margin: 8px 0 10px; font-size: clamp(28px, 5vw, 42px); line-height: 1.05; letter-spacing: -0.05em; }
+.login-intro { margin: 0 0 28px; color: var(--ink-soft); }
+.login-form { display: grid; gap: 16px; }
+.login-submit { width: 100%; margin-top: 8px; justify-content: center; }
+.login-note { margin: 20px 0 0; color: var(--ink-soft); font-size: 12px; }
+.login-error { margin: 14px 0 0; padding: 10px 12px; border-radius: var(--radius-small); color: #7d2f24; background: var(--coral-pale); }
 
 .site-nav {
   display: flex;

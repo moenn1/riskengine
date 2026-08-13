@@ -31,6 +31,12 @@ public sealed class PortfolioApiTests
         Assert.Contains("data-view-link=\"workbench\"", html);
         Assert.Contains("id=\"dashboard-table-body\"", html);
 
+        using var loginResponse = await client.GetAsync("/login.html", cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var loginHtml = await loginResponse.Content.ReadAsStringAsync(cancellationToken);
+        Assert.Contains("id=\"login-form\"", loginHtml);
+        Assert.Contains("id=\"login-role\"", loginHtml);
+
         using var styleResponse = await client.GetAsync(
             "/css/site.css",
             cancellationToken);

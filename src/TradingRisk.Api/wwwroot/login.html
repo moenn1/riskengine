@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sign in to the Trading Risk Engine learning workbench.">
+  <title>Sign in · Risk Engine</title>
+  <link rel="stylesheet" href="/css/site.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card" aria-labelledby="login-title">
+      <a class="brand login-brand" href="/" aria-label="Risk Engine home">
+        <span class="brand-mark" aria-hidden="true">R/E</span>
+        <span><strong>Risk Engine</strong><small>Historical simulation lab</small></span>
+      </a>
+      <p class="eyebrow">DEMO SECURITY · JWT</p>
+      <h1 id="login-title">Sign in to the workbench</h1>
+      <p class="login-intro">Choose a learning role. The API will issue a short-lived development token and the protected workbench will open after authentication.</p>
+      <form id="login-form" class="login-form">
+        <label class="field"><span>User name</span><input id="login-user" value="browser-learner" maxlength="50" autocomplete="username" required></label>
+        <label class="field"><span>Role</span><select id="login-role"><option value="risk-reader">Risk reader · view and calculate</option><option value="risk-operator">Risk operator · includes create</option></select></label>
+        <button class="button button-primary login-submit" type="submit">Sign in <span aria-hidden="true">↗</span></button>
+      </form>
+      <p class="login-note">This demo login is enabled only in Development/Testing. Production uses an external OIDC identity provider.</p>
+      <p class="login-error" id="login-error" role="alert" hidden></p>
+    </section>
+  </main>
+  <script src="/js/login.js"></script>
+</body>
+</html>

@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/css/site.css">
   <script type="module" src="/js/app.js"></script>
 </head>
-<body class="auth-locked">
+<body class="app-loading">
   <a class="skip-link" href="#workbench">Skip to the workbench</a>
 
   <header class="site-header">
@@ -26,26 +26,15 @@
       <span class="status-dot" id="api-status-dot" aria-hidden="true"></span>
       <span id="api-status-text">Checking API</span>
     </div>
+    <div class="identity-bar">
+      <span id="identity-label">Signed in</span>
+      <button class="button button-quiet button-small" id="logout-button" type="button">Sign out</button>
+    </div>
     <nav class="site-nav" aria-label="Primary navigation">
       <a href="#overview" data-view-link="overview">Overview</a>
       <a href="#workbench" data-view-link="workbench">Risk workbench</a>
     </nav>
   </header>
-
-  <section class="auth-panel" aria-labelledby="auth-title">
-    <div class="auth-copy">
-      <p class="eyebrow">DEMO SECURITY · JWT</p>
-      <h2 id="auth-title">Sign in to the learning API</h2>
-      <p id="auth-status">Not signed in. Choose a role to see its permissions.</p>
-      <small id="auth-permissions">Protected content is locked.</small>
-    </div>
-    <form id="login-form" class="auth-form">
-      <label class="field"><span>User</span><input id="login-user" value="browser-learner" maxlength="50" required></label>
-      <label class="field"><span>Role</span><select id="login-role"><option value="risk-reader">Risk reader</option><option value="risk-operator">Risk operator</option></select></label>
-      <button class="button button-primary button-small" type="submit">Sign in</button>
-      <button class="button button-quiet button-small" id="logout-button" type="button">Sign out</button>
-    </form>
-  </section>
 
   <main>
     <section class="hero" aria-labelledby="page-title">

@@ -27,7 +27,7 @@ const state = {
   scenarioRowCounter: 0,
   dashboardPage: 1,
   dashboardTotalPages: 0,
-  accessToken: null
+  accessToken: sessionStorage.getItem("riskengine.accessToken")
 };
 
 const elements = {
@@ -92,14 +92,20 @@ const elements = {
   dashboardNextButton: document.querySelector("#dashboard-next-button"),
   currencyBreakdown: document.querySelector("#currency-breakdown"),
   viewLinks: document.querySelectorAll("[data-view-link]")
-  ,loginForm: document.querySelector("#login-form")
-  ,loginUser: document.querySelector("#login-user")
-  ,loginRole: document.querySelector("#login-role")
   ,logoutButton: document.querySelector("#logout-button")
-  ,authStatus: document.querySelector("#auth-status")
-  ,authPermissions: document.querySelector("#auth-permissions")
+  ,identityLabel: document.querySelector("#identity-label")
   ,jobStatus: document.querySelector("#job-status")
 };
+
+if (!state.accessToken) {
+  window.location.replace("/login.html");
+} else {
+  document.body.classList.remove("app-loading");
+  document.body.classList.add("app-ready");
+  const user = sessionStorage.getItem("riskengine.user") || "learner";
+  const role = sessionStorage.getItem("riskengine.role") || "risk-reader";
+  elements.identityLabel.textContent = `${user} · ${role}`;
+}
 
 class ApiError extends Error {
   constructor(status, title, detail, validationErrors = []) {
@@ -808,33 +814,12 @@ async function sendJson(url, method, payload) {
   return body;
 }
 
-async function acquireDevelopmentToken(userName = elements.loginUser.value, role = elements.loginRole.value) {
-  // The endpoint exists only in Development/Testing; production should use the
-  // organization's OIDC login flow instead of minting a browser token here.
-  const response = await fetch("/api/v1/auth/token", {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ userName, role })
-  });
-  if (response.ok) {
-    const body = await response.json();
-    state.accessToken = body.accessToken;
-    document.body.classList.remove("auth-locked");
-    elements.authStatus.textContent = `Signed in as ${userName} · ${role}.`;
-    elements.authPermissions.textContent = role === "risk-operator"
-      ? "Permissions: read portfolios, calculate risk, create portfolios, queue jobs."
-      : "Permissions: read portfolios, calculate risk, queue jobs. Creation is restricted.";
-    return true;
-  }
-  elements.authStatus.textContent = "Sign-in is available only in Development/Testing.";
-  return false;
-}
-
 function signOut() {
   state.accessToken = null;
-  document.body.classList.add("auth-locked");
-  elements.authStatus.textContent = "Signed out. Choose a role to sign in again.";
-  elements.authPermissions.textContent = "Protected content is locked.";
+  sessionStorage.removeItem("riskengine.accessToken");
+  sessionStorage.removeItem("riskengine.user");
+  sessionStorage.removeItem("riskengine.role");
+  window.location.replace("/login.html");
 }
 
 async function checkHealth() {
@@ -1036,15 +1021,6 @@ elements.dashboardCurrencyFilter.addEventListener("input", event => {
 elements.viewLinks.forEach(link => {
   link.addEventListener("click", () => setView(link.dataset.viewLink));
 });
-elements.loginForm.addEventListener("submit", async event => {
-  event.preventDefault();
-  try {
-    await acquireDevelopmentToken();
-    await loadDashboard();
-  } catch (error) {
-    showError(error);
-  }
-});
 elements.logoutButton.addEventListener("click", signOut);
 window.addEventListener("hashchange", setViewFromHash);
 elements.baseCurrency.addEventListener("input", event => {
@@ -1056,3 +1032,4 @@ fillPortfolioForm(samplePortfolio, false);
 setJourneyState("portfolio");
 setViewFromHash();
 checkHealth();
+if (state.accessToken) loadDashboard();

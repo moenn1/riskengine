@@ -65,9 +65,11 @@ dependency. The browser natively understands all three asset types.
 
 ### Authentication and queued work
 
-The page starts locked; protected content is hidden until sign-in succeeds. The
-sign-in panel calls the Development/Testing-only `/api/v1/auth/token`
-endpoint and stores the short-lived bearer token in memory. `getJson` and
+`/login.html` is a separate page. The workbench redirects there when no session
+token exists, so protected content is not rendered before sign-in. The login page
+calls the Development/Testing-only `/api/v1/auth/token`
+endpoint and stores the short-lived bearer token in `sessionStorage` for the
+same browser tab. `getJson` and
 `sendJson` attach it as an `Authorization: Bearer ...` header. Signing out clears
 that value. This is a teaching flow, not a production login: a real browser
 would use an OIDC authorization-code flow with an approved identity provider.
