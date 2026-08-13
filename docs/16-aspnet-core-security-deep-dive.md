@@ -40,12 +40,18 @@ protected endpoints execute.
 
 `Security/SecurityOptions.cs` binds configuration. In this sample the HMAC key
 is a development placeholder and startup validation requires at least 32 bytes.
-Real deployments should validate tokens from an OIDC provider using rotating
-public keys, with secrets supplied by a secret manager or environment.
+The two local learning accounts store only PBKDF2-SHA256 hashes; the API never
+stores or compares a plaintext password. Failed attempts are counted per user
+and temporarily locked, and invalid usernames/passwords receive the same generic
+response. Real deployments should validate tokens from an OIDC provider using
+rotating public keys, with secrets supplied by a secret manager or environment.
 
 `AuthController` exposes `POST /api/v1/auth/token` only in Development/Testing.
-It accepts a demo role so learners can observe permissions. It must be removed
-or disabled in production because a real user cannot choose their own role.
+The browser supplies username/password, while the server looks up the username
+and assigns its configured role. The browser cannot choose or elevate its role.
+The local accounts are intentionally documented learning credentials and must be
+removed in production. A real deployment uses an identity provider, MFA, account
+recovery, monitoring, and a persistent user/lockout system.
 
 `PortfoliosController` uses:
 

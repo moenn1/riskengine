@@ -237,12 +237,21 @@ code {
 
 .identity-bar {
   display: flex;
-  gap: 10px;
+  margin-left: 14px;
+  gap: 12px;
   align-items: center;
+  white-space: nowrap;
   color: var(--ink-soft);
   font-family: var(--mono);
   font-size: 11px;
   text-transform: uppercase;
+}
+
+.identity-bar span {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgb(255 254 250 / 80%);
 }
 
 .login-page {
@@ -254,13 +263,21 @@ code {
 
 .login-shell {
   display: grid;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   min-height: 100vh;
   padding: 32px 20px;
+  grid-template-columns: minmax(0, 500px);
+  justify-content: center;
   place-items: center;
 }
 
 .login-card {
-  width: min(100%, 500px);
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  box-sizing: border-box;
   padding: clamp(28px, 6vw, 52px);
   border: 1px solid var(--line);
   border-radius: var(--radius-large);
@@ -1884,6 +1901,10 @@ table {
     flex-wrap: wrap;
   }
 
+  .identity-bar {
+    margin-left: auto;
+  }
+
   .site-nav {
     width: 100%;
     margin: 4px 0 0;
@@ -2053,6 +2074,12 @@ table {
 }
 
 @media (max-width: 430px) {
+  .identity-bar span {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .api-state {
     padding-inline: 9px;
   }

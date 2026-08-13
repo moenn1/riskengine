@@ -7,7 +7,7 @@ GET {{host}}/health
 POST {{host}}/api/v1/auth/token
 Content-Type: application/json
 
-{"userName":"http-learner","role":"risk-operator"}
+{"userName":"risk-operator","password":"operator-learning"}
 
 @token = paste-token-here
 

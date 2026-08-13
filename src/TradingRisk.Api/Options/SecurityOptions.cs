@@ -14,4 +14,20 @@ public sealed class SecurityOptions
 
     // Deliberately a development-only sample value; never commit a real secret.
     public string DemoSigningKey { get; init; } = "development-only-change-me-32-bytes-long";
+
+    public int MaxFailedAttempts { get; init; } = 5;
+
+    public int LockoutMinutes { get; init; } = 5;
+
+    public IReadOnlyList<DemoUserOptions> DemoUsers { get; init; } = [];
+}
+
+public sealed class DemoUserOptions
+{
+    public string UserName { get; init; } = "";
+
+    public string Role { get; init; } = "risk-reader";
+
+    // PBKDF2-SHA256$iterations$base64Salt$base64Hash. Never store plaintext here.
+    public string PasswordHash { get; init; } = "";
 }

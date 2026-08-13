@@ -6,6 +6,7 @@
   <meta name="description" content="Sign in to the Trading Risk Engine learning workbench.">
   <title>Sign in · Risk Engine</title>
   <link rel="stylesheet" href="/css/site.css">
+  <link rel="stylesheet" href="/css/login.css">
 </head>
 <body class="login-page">
   <main class="login-shell">
@@ -19,10 +20,10 @@
       <p class="login-intro">Choose a learning role. The API will issue a short-lived development token and the protected workbench will open after authentication.</p>
       <form id="login-form" class="login-form">
         <label class="field"><span>User name</span><input id="login-user" value="browser-learner" maxlength="50" autocomplete="username" required></label>
-        <label class="field"><span>Role</span><select id="login-role"><option value="risk-reader">Risk reader · view and calculate</option><option value="risk-operator">Risk operator · includes create</option></select></label>
+        <label class="field"><span>Password</span><input id="login-password" type="password" value="learning" autocomplete="current-password" required></label>
         <button class="button button-primary login-submit" type="submit">Sign in <span aria-hidden="true">↗</span></button>
       </form>
-      <p class="login-note">This demo login is enabled only in Development/Testing. Production uses an external OIDC identity provider.</p>
+      <p class="login-note">Try <code>browser-learner</code> / <code>learning</code> for reader access, or <code>risk-operator</code> / <code>operator-learning</code> for operator access. This local credential flow is enabled only in Development/Testing.</p>
       <p class="login-error" id="login-error" role="alert" hidden></p>
     </section>
   </main>

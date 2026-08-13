@@ -13,14 +13,14 @@ form.addEventListener("submit", async event => {
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({
         userName: document.querySelector("#login-user").value,
-        role: document.querySelector("#login-role").value
+        password: document.querySelector("#login-password").value
       })
     });
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(body?.detail || "Sign-in is unavailable.");
     sessionStorage.setItem("riskengine.accessToken", body.accessToken);
-    sessionStorage.setItem("riskengine.user", document.querySelector("#login-user").value);
-    sessionStorage.setItem("riskengine.role", document.querySelector("#login-role").value);
+    sessionStorage.setItem("riskengine.user", body.userName);
+    sessionStorage.setItem("riskengine.role", body.role);
     window.location.replace("/");
   } catch (caught) {
     error.textContent = caught.message;

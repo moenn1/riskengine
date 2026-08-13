@@ -25,6 +25,15 @@ builder.Services.AddOptions<SecurityOptions>()
     .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
     .Validate(options => Encoding.UTF8.GetByteCount(options.DemoSigningKey) >= 32,
         "Security:DemoSigningKey must be at least 32 bytes for the learning HMAC example.")
+    .Validate(options => options.MaxFailedAttempts is >= 1 and <= 20,
+        "Security:MaxFailedAttempts must be between 1 and 20.")
+    .Validate(options => options.LockoutMinutes is >= 1 and <= 60,
+        "Security:LockoutMinutes must be between 1 and 60.")
+    .Validate(options => options.DemoUsers.Count > 0 && options.DemoUsers.All(user =>
+        !string.IsNullOrWhiteSpace(user.UserName) &&
+        user.Role is "risk-reader" or "risk-operator" &&
+        user.PasswordHash.StartsWith("PBKDF2-SHA256$", StringComparison.Ordinal)),
+        "Security:DemoUsers must contain valid usernames, roles, and PBKDF2 hashes.")
     .ValidateOnStart();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -103,6 +112,7 @@ builder.Services.AddScoped<GetPortfolioStatisticsHandler>();
 builder.Services.AddScoped<GetPortfolioAnalyticsHandler>();
 builder.Services.AddScoped<CalculatePortfolioRiskHandler>();
 builder.Services.AddSingleton<TradingRisk.Api.Security.DemoTokenService>();
+builder.Services.AddSingleton<TradingRisk.Api.Security.CredentialValidator>();
 builder.Services.AddSingleton<IRiskJobBroker, InMemoryRiskJobBroker>();
 builder.Services.AddHostedService<RiskJobWorker>();
 

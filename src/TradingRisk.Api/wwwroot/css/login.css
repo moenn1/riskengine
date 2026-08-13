@@ -1,0 +1,130 @@
+/* Login is deliberately isolated from the workbench stylesheet. */
+html:has(body.login-page),
+body.login-page {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body.login-page {
+  color: #132d38;
+  background: #eef2ee;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.login-page .login-shell {
+  display: grid !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 100vh;
+  margin: 0 !important;
+  padding: 32px 20px;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 460px) !important;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-page .login-card {
+  display: block;
+  width: 460px !important;
+  max-width: calc(100vw - 40px) !important;
+  margin: 0 !important;
+  padding: 42px !important;
+  box-sizing: border-box;
+  border: 1px solid #d2dcd5;
+  border-radius: 20px;
+  background: #fffefa;
+  box-shadow: 0 24px 70px rgb(19 45 56 / 14%);
+}
+
+.login-page .login-brand {
+  display: inline-flex;
+  margin: 0 0 52px;
+  text-decoration: none;
+}
+
+.login-page .login-card .eyebrow {
+  margin: 0 0 12px;
+  color: #0d7069;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.login-page .login-card h1 {
+  margin: 0;
+  color: #132d38;
+  font-size: clamp(30px, 7vw, 43px);
+  font-weight: 760;
+  letter-spacing: -.055em;
+  line-height: 1.02;
+}
+
+.login-page .login-intro {
+  margin: 16px 0 30px;
+  color: #526a72;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.login-page .login-form {
+  display: grid;
+  gap: 17px;
+}
+
+.login-page .login-form .field {
+  display: grid;
+  gap: 8px;
+  color: #38535c;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.login-page .login-form input,
+.login-page .login-form select {
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid #bdcbc2;
+  border-radius: 10px;
+  outline: 0;
+  color: #132d38;
+  background: #fffefa;
+  font: 14px "SFMono-Regular", Consolas, monospace;
+}
+
+.login-page .login-form input:focus,
+.login-page .login-form select:focus {
+  border-color: #0d7069;
+  box-shadow: 0 0 0 4px rgb(13 112 105 / 14%);
+}
+
+.login-page .login-submit {
+  display: flex;
+  width: 100%;
+  min-height: 50px;
+  margin: 8px 0 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  color: #102c35;
+  background: #d6ee70;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.login-page .login-submit:hover { background: #c8e45d; }
+.login-page .login-submit:disabled { cursor: wait; opacity: .65; }
+.login-page .login-note { margin: 22px 0 0; color: #6b7d82; font-size: 12px; line-height: 1.55; }
+.login-page .login-error { margin: 16px 0 0; padding: 12px 14px; border-radius: 9px; color: #7d2f24; background: #f7dfd8; font-size: 13px; }
+
+@media (max-width: 520px) {
+  .login-page .login-shell { padding: 20px 14px; }
+  .login-page .login-card { max-width: calc(100vw - 28px) !important; padding: 30px 24px !important; }
+  .login-page .login-brand { margin-bottom: 38px; }
+}
