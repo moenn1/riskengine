@@ -96,3 +96,18 @@ authorization-code flow with PKCE and an approved identity provider.
 The security goal is not “add an attribute.” It is a chain from identity
 provider, token validation, policy decision, resource-level authorization,
 auditing, and operational key management.
+
+## Production configuration boundary
+
+The committed base `appsettings.json` contains no signing secret and no demo
+users. Development and Testing overlays contain the learning-only PBKDF2 hashes.
+Production should set `Security:Authority` to the approved OIDC issuer through
+deployment configuration or secret management. JwtBearer then uses discovery and
+rotating issuer keys; the local HMAC/demo-user path is not used. Database
+migrations are disabled during Production startup and belong in a reviewed
+deployment migration step.
+
+The API adds HSTS (outside Testing), HTTPS redirection, CSP, clickjacking,
+MIME-sniffing, and referrer-policy headers. These are defense-in-depth controls,
+not replacements for an identity provider, resource authorization, secure
+secrets, dependency scanning, or an incident process.

@@ -35,7 +35,7 @@ public sealed class PortfolioApiTests
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
         var loginHtml = await loginResponse.Content.ReadAsStringAsync(cancellationToken);
         Assert.Contains("id=\"login-form\"", loginHtml);
-        Assert.Contains("id=\"login-role\"", loginHtml);
+        Assert.Contains("id=\"login-password\"", loginHtml);
 
         using var styleResponse = await client.GetAsync(
             "/css/site.css",

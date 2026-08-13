@@ -23,13 +23,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddOptions<SecurityOptions>()
     .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
-    .Validate(options => Encoding.UTF8.GetByteCount(options.DemoSigningKey) >= 32,
-        "Security:DemoSigningKey must be at least 32 bytes for the learning HMAC example.")
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Authority) ||
+        Encoding.UTF8.GetByteCount(options.DemoSigningKey) >= 32,
+        "Security requires an OIDC Authority or a signing key of at least 32 bytes.")
     .Validate(options => options.MaxFailedAttempts is >= 1 and <= 20,
         "Security:MaxFailedAttempts must be between 1 and 20.")
     .Validate(options => options.LockoutMinutes is >= 1 and <= 60,
         "Security:LockoutMinutes must be between 1 and 60.")
-    .Validate(options => options.DemoUsers.Count > 0 && options.DemoUsers.All(user =>
+    .Validate(options => (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing")) ||
+        options.DemoUsers.Count > 0 && options.DemoUsers.All(user =>
         !string.IsNullOrWhiteSpace(user.UserName) &&
         user.Role is "risk-reader" or "risk-operator" &&
         user.PasswordHash.StartsWith("PBKDF2-SHA256$", StringComparison.Ordinal)),
@@ -41,15 +43,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         var security = builder.Configuration
             .GetSection(SecurityOptions.SectionName)
             .Get<SecurityOptions>() ?? new SecurityOptions();
+        if (!string.IsNullOrWhiteSpace(security.Authority))
+        {
+            options.Authority = security.Authority;
+            options.RequireHttpsMetadata = true;
+        }
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = security.Issuer,
             ValidateAudience = true,
             ValidAudience = security.Audience,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(security.DemoSigningKey)),
+            ValidateIssuerSigningKey = string.IsNullOrWhiteSpace(security.Authority),
+            IssuerSigningKey = string.IsNullOrWhiteSpace(security.Authority)
+                ? new SymmetricSecurityKey(Encoding.UTF8.GetBytes(security.DemoSigningKey))
+                : null,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30)
         };
@@ -120,9 +128,12 @@ builder.Services.AddHostedService<RiskJobWorker>();
 // starts Kestrel and waits for shutdown.
 var app = builder.Build();
 
-// Convenient for this one-process learning project. A production deployment should run
-// reviewed migration SQL or a migration bundle before starting application replicas.
-await app.Services.MigrateTradingRiskDatabaseAsync();
+// Local learning/test hosts can apply SQLite migrations. Production replicas must use a
+// reviewed migration bundle or deployment job, never race while the app is starting.
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+{
+    await app.Services.MigrateTradingRiskDatabaseAsync();
+}
 
 // Middleware runs in registration order on the request and unwinds in reverse order for
 // the response. Error handling is early so it can catch failures from later components.
@@ -132,7 +143,22 @@ app.UseExceptionHandler();
 if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
+    app.UseHsts();
 }
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.TryAdd("X-Frame-Options", "DENY");
+    context.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+    if (!app.Environment.IsDevelopment())
+    {
+        context.Response.Headers.TryAdd(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    }
+    await next();
+});
 
 // The Web SDK publishes files under wwwroot. DefaultFiles rewrites "/" to
 // "/index.html"; StaticFiles serves the HTML, CSS, and JavaScript without a controller.

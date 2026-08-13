@@ -1,17 +1,17 @@
-# Roadmap informed by the bank-risk role description
+# Role-informed bank risk-platform roadmap
 
-The description you found is valuable because it identifies responsibilities and
-technologies that public material does not. It still describes one person's
-scope, not a complete authoritative architecture, so treat it as a strong
-engineering signal rather than a specification.
+The role description is valuable because it identifies responsibilities and
+technologies found in a large bank risk-platform team. It describes one person's
+scope, not a complete authoritative architecture, so treat it as an engineering
+signal rather than a specification.
 
 ## What it tells us about the target
 
-| Description | What to learn in this project | Current status |
+| Role clue | What to learn in this project | Current status |
 | --- | --- | --- |
-| C# bank-risk RT FXO and Rio restitution UI | C# domain/application code, REST contract, result-oriented UI | core API and browser UI implemented |
+| C# real-time FX risk and trader restitution UI | C# domain/application code, REST contract, result-oriented UI | core API and browser UI implemented |
 | WinForms and WPF | desktop presentation patterns, MVVM, synchronization-context/UI-thread rules | documented exercise; not added because WPF is Windows-specific |
-| bank-front-to-back front-to-back / 400 developers | modular boundaries, stable contracts, release compatibility, ownership | modular monolith foundation |
+| large front-to-back platform | modular boundaries, stable contracts, release compatibility, ownership | modular monolith foundation |
 | Core team: database, multithreading, memory, speed | profiling, allocation analysis, bounded concurrency, query plans | next performance milestone |
 | Oracle SQL, MongoDB, ElasticSearch | polyglot persistence by workload, not “one database everywhere” | SQLite adapter today; target adapters documented below |
 | Symphony calculation grid and load balancer | partitioning, worker leases, capacity, retries, deterministic aggregation | next distributed-risk exercise |

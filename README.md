@@ -43,8 +43,8 @@ code. Use this study order:
 11. [GitHub-rendered Mermaid diagrams](docs/06-mermaid-diagrams.md)
 12. [Production-scale .NET deep dive](docs/10-production-scale-dotnet-deep-dive.md)
 13. [Hands-on exercises](docs/04-exercises.md)
-14. [bank-risk-inspired architecture, queues, and security](docs/13-bank-risk-inspired-architecture-queues-and-security.md)
-15. [Roadmap informed by the bank-risk role description](docs/14-role-informed-bank-risk-roadmap.md)
+14. [Bank risk-platform architecture, queues, and security](docs/13-bank-risk-architecture-queues-and-security.md)
+15. [Role-informed bank risk-platform roadmap](docs/14-bank-risk-platform-roadmap.md)
 16. [Non-regression testing in finance](docs/15-non-regression-testing-in-finance.md)
 17. [ASP.NET Core security deep dive](docs/16-aspnet-core-security-deep-dive.md)
 

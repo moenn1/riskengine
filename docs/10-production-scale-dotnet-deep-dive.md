@@ -30,6 +30,8 @@ Properties:
   deliberately mounted file, which is not a horizontal-scaling architecture;
 - risk calculation uses request CPU and must finish before the response;
 - Development/Testing JWT authentication and reader/operator authorization exist;
+  Production is configured for an external OIDC authority rather than committed
+  demo keys/users;
 - health verifies SQLite connectivity but not every query or dependency;
 - logs are local console output unless the host collects them;
 - no calculation input/result is durably reproducible.

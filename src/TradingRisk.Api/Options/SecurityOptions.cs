@@ -12,8 +12,11 @@ public sealed class SecurityOptions
 
     public string Audience { get; init; } = "riskengine-api";
 
+    /// <summary>Production OIDC authority. When set, JwtBearer uses discovery and rotating keys.</summary>
+    public string Authority { get; init; } = "";
+
     // Deliberately a development-only sample value; never commit a real secret.
-    public string DemoSigningKey { get; init; } = "development-only-change-me-32-bytes-long";
+    public string DemoSigningKey { get; init; } = "";
 
     public int MaxFailedAttempts { get; init; } = 5;
 

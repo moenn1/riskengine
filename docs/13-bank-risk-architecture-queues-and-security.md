@@ -1,29 +1,25 @@
-# bank-risk-inspired architecture, queues, and security
+# Bank risk-platform architecture, queues, and security
 
 This chapter makes the learning project closer to the *shape* of a bank risk
-platform without claiming to reproduce bank's private systems.
+platform without claiming to reproduce any private system.
 
 ## What is publicly supported
 
-Public bank disclosures describe **bank-front-to-back** as a front-office system
-where trading transactions are booked and positions and sensitivities are
-calculated. They describe **bank-risk** and AGRisk as market-risk calculation
-systems, with VaR, stress, interest-rate and FX sensitivities consumed by risk
-management. They do not publish the internal source code, broker, database,
-latency SLOs, or deployment topology. Therefore the diagram below is a useful
-industry learning target, not a claim about the production implementation.
-
-Sources: [SG India financial statement 2020](https://www.societegenerale.asia/fileadmin/user_upload/Societe_Generale_websites/Asia/India/India_Financial_Annual_Reports/Financial_statement_for_the_year_ended_March_31_2020.pdf), [SG India financial statement 2025](https://www.societegenerale.asia/fileadmin/user_upload/Societe_Generale_websites/Asia/India/India_Financial_Annual_Reports/Financial_statement_for_the_year_ended_March_31_2025.pdf.pdf), and [SG risk governance](https://www.societegenerale.com/fr/groupe/conformite-risques/maitrise-risques).
+Large financial institutions commonly separate front-office trade capture,
+pricing/sensitivities, market-risk aggregation, and trader-facing reporting.
+The internal source code, broker, database, latency SLOs, and deployment
+topology of any particular institution are not assumed here. The diagram is an
+industry learning target, not a claim about a production implementation.
 
 ## Target mental model
 
 ```mermaid
 flowchart LR
-  T[Trade capture / bank-front-to-back-like] --> C[Canonical trade and position store]
+  T[Trade capture] --> C[Canonical trade and position store]
   M[Market data] --> P[Pricing and sensitivities]
   C --> P
   P --> S[As-of sensitivity snapshot]
-  S --> R[bank-risk-like risk engine]
+  S --> R[Market-risk engine]
   R --> V[VaR / stress / limits / reports]
   P -. low-latency updates .-> UI[Risk and trader views]
   C -. events .-> Q[(Durable broker / stream)]
@@ -40,7 +36,7 @@ nonlinear Greeks.
 
 ## Queues and low latency
 
-There is no reliable public evidence that bank-risk uses a particular queue
+There is no basis to assume a particular institution uses a particular queue
 technology, so do not write “it uses Kafka” as a fact. In a real risk platform,
 two paths commonly coexist:
 

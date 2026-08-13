@@ -184,9 +184,9 @@ and redelivery cannot duplicate the published result.
 
 ## Milestone 5 — expand the risk engine
 
-Before starting the distributed milestones, read the [roadmap informed by the
-bank-risk role description](14-role-informed-bank-risk-roadmap.md). It maps the
-concrete C#/WinForms/WPF/Oracle/MongoDB/ElasticSearch/Symphony/Jenkins clues to
+Before starting the distributed milestones, read the [role-informed bank
+risk-platform roadmap](14-bank-risk-platform-roadmap.md). It maps the concrete
+C#/WinForms/WPF/Oracle/MongoDB/ElasticSearch/Symphony/Jenkins clues to
 the exercises below and explains why the sample does not add infrastructure
 without a measured need.
 

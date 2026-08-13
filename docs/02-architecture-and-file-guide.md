@@ -211,8 +211,8 @@ PostgreSQL tests should repeat provider-sensitive behavior against PostgreSQL.
 | `docs/10-production-scale-dotnet-deep-dive.md` | EF Core, transactions, async/parallelism, durable jobs/messaging, `HttpClient`, caching, security, observability, performance, scaling, deployment, and model governance. |
 | `docs/11-browser-ui-deep-dive.md` | Detailed guide to static-file hosting, semantic HTML, CSS, browser JavaScript, API calls, security, testing, packaging, and Java/Spring comparisons. |
 | `docs/12-ef-core-sqlite-linq-deep-dive.md` | Detailed Java/JPA comparison for packages, connection strings, DbContext, entities/mappings, repositories, LINQ translation, migrations, testing, SQLite limitations, and production evolution. |
-| `docs/13-bank-risk-inspired-architecture-queues-and-security.md` | Public evidence boundaries, bank-risk-inspired architecture, synchronous versus queued work, and security concepts. |
-| `docs/14-role-informed-bank-risk-roadmap.md` | Roadmap derived from the role description: real-time processing, calculation grids, persistence, performance, release, and support. |
+| `docs/13-bank-risk-architecture-queues-and-security.md` | Bank risk-platform architecture, synchronous versus queued work, and security concepts. |
+| `docs/14-bank-risk-platform-roadmap.md` | Role-informed roadmap for real-time processing, calculation grids, persistence, performance, release, and support. |
 | `docs/15-non-regression-testing-in-finance.md` | Golden fixtures, market-data replay, tolerances, deterministic calculations, performance gates, and release approval. |
 | `docs/16-aspnet-core-security-deep-dive.md` | JWT bearer validation, claims/policies, 401/403 behavior, browser flow, and production security boundaries. |
 
