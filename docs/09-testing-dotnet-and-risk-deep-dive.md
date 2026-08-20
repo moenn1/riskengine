@@ -169,6 +169,26 @@ Choose message assertions deliberately:
 The current tests use exact text for a small domain rule and substring matching
 when an instrument value is the important detail.
 
+## CI verification and coverage
+
+The GitHub Actions workflow runs the same Release build and test commands used
+locally, then adds two guardrails:
+
+```yaml
+- name: Verify formatting
+  run: dotnet format RiskEngine.slnx --verify-no-changes --no-restore
+
+- name: Test
+  run: dotnet test RiskEngine.slnx --configuration Release --no-build --collect:"XPlat Code Coverage"
+```
+
+`--verify-no-changes` makes formatting drift fail the build without rewriting
+the contributor's files. `XPlat Code Coverage` enables the .NET coverage data
+collector; the generated report is evidence about exercised code, not proof of
+financial correctness. A mature pipeline should publish the report, enforce a
+deliberate threshold, and combine it with golden-master, property-based, load,
+and mutation tests.
+
 ## 7. Domain tests are executable specifications
 
 `HistoricalSimulationRiskCalculatorTests` does more than improve line

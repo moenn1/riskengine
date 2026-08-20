@@ -763,29 +763,35 @@ retention, access, and business semantics.
 
 ## 17. Rate limiting
 
-The project defines a fixed window:
+The project defines a fixed window partitioned by authenticated user name, or
+by remote IP address for anonymous requests:
 
 ```csharp
-options.AddFixedWindowLimiter("api", limiter =>
-{
-    limiter.PermitLimit = 100;
-    limiter.Window = TimeSpan.FromMinutes(1);
-    limiter.QueueLimit = 0;
-});
+options.AddPolicy("api", context =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        context.User.Identity?.Name ??
+        context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 ```
 
 Meaning:
 
-- at most 100 permits per window for the policy's default partition behavior;
+- at most 100 permits per minute for each user/IP partition;
 - no excess request waits in a queue;
 - rejected requests receive 429.
 
-This is a teaching baseline, not a production policy. A real design asks:
+This is a teaching baseline, not a production policy. It is process-local, so
+each application replica maintains its own counters. A real design asks:
 
 - Is the partition per user, client, tenant, IP, desk, or endpoint?
 - Do all calculations have equal cost?
 - Is limiting also enforced at the API gateway?
-- How do multiple app replicas share a global quota?
+- How do multiple app replicas share a global quota through a distributed store?
 - Should clients receive `Retry-After`?
 - Can a malicious client create high CPU cost below the request-count limit?
 

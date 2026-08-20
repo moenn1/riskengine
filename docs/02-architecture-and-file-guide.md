@@ -55,6 +55,7 @@ for the reasoning behind each boundary.
 | File | Purpose and lesson |
 |---|---|
 | `.gitignore` | Keeps compiler output, test output, and local IDE state out of source control. |
+| `.gitattributes` | Standardizes LF line endings and gives Git language-aware diffs for C#, MSBuild, JSON, and Markdown. |
 | `.dockerignore` | Reduces Docker build context and prevents local/generated files entering an image build. |
 | `.editorconfig` | Shares whitespace and selected C# style rules across Rider, Visual Studio, VS Code, and command-line analyzers. It suppresses one allocation micro-optimization only for EF-generated migration code. |
 | `Directory.Build.props` | Applies target framework, C# version, nullable analysis, implicit usings, deterministic builds, and warnings-as-errors to every project. This is similar to common Maven parent/Gradle convention configuration. |
@@ -63,7 +64,7 @@ for the reasoning behind each boundary.
 | `global.json` | Selects .NET 10 SDK policy and Microsoft Testing Platform as the `dotnet test` runner. `latestFeature` allows an installed later .NET 10 feature band. |
 | `RiskEngine.slnx` | XML solution file listing production and test projects; a solution groups projects but is not deployed. |
 | `Dockerfile` | Multi-stage build: restore/publish with the SDK image, then run as the non-root app user in the smaller ASP.NET runtime image. It creates a writable `/app/App_Data` SQLite volume. |
-| `.github/workflows/ci.yml` | Restores, builds in Release, and tests on each pull request and main-branch push. |
+| `.github/workflows/ci.yml` | Restores, builds in Release, verifies formatting, collects cross-platform coverage, and tests on each pull request and main-branch push. |
 | `README.md` | Entry point, architecture summary, safety boundary, commands, and navigation. |
 
 ## Domain project
@@ -215,6 +216,7 @@ PostgreSQL tests should repeat provider-sensitive behavior against PostgreSQL.
 | `docs/14-bank-risk-platform-roadmap.md` | Role-informed roadmap for real-time processing, calculation grids, persistence, performance, release, and support. |
 | `docs/15-non-regression-testing-in-finance.md` | Golden fixtures, market-data replay, tolerances, deterministic calculations, performance gates, and release approval. |
 | `docs/16-aspnet-core-security-deep-dive.md` | JWT bearer validation, claims/policies, 401/403 behavior, browser flow, and production security boundaries. |
+| `docs/17-production-improvements.md` | Explains the repository cleanup, partitioned rate limiter, CI checks, and the next production-hardening increments. |
 
 ## Rules that protect the architecture
 

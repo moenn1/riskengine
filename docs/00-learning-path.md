@@ -276,6 +276,19 @@ The [production-scale .NET deep dive](10-production-scale-dotnet-deep-dive.md)
 connects persistence, jobs, messaging, security, observability, performance,
 and deployment into one evolution path.
 
+## Milestone 9 — engineering guardrails
+
+The repository now also demonstrates a small set of delivery guardrails:
+
+- `.gitattributes` keeps line endings and diffs consistent across environments;
+- CI verifies formatting with `dotnet format --verify-no-changes`;
+- CI collects cross-platform test coverage;
+- API rate limits are partitioned by authenticated user or anonymous client IP.
+
+Read [Production-oriented improvements](17-production-improvements.md) for the
+trade-offs and the remaining work: distributed rate limiting, durable messaging,
+OpenTelemetry, PostgreSQL, and stronger financial-model test suites.
+
 ## Topics to ask your new team in week one
 
 - Which .NET target and SDK feature band are supported?
