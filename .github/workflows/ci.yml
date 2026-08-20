@@ -27,5 +27,8 @@ jobs:
       - name: Build
         run: dotnet build RiskEngine.slnx --configuration Release --no-restore
 
+      - name: Verify formatting
+        run: dotnet format RiskEngine.slnx --verify-no-changes --no-restore
+
       - name: Test
-        run: dotnet test RiskEngine.slnx --configuration Release --no-build
+        run: dotnet test RiskEngine.slnx --configuration Release --no-build --collect:"XPlat Code Coverage"

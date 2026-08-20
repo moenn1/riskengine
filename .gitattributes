@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.cs text diff=csharp
+*.csproj text diff=xml
+*.props text diff=xml
+*.json text diff
+*.md text diff

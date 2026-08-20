@@ -88,18 +88,25 @@ builder.Services
         "RiskApi:MaxScenarioCount must be between 1 and 10,000.")
     .ValidateOnStart();
 
-// This named policy is attached only to controller endpoints below. A fixed window is
-// intentionally simple; a real distributed quota needs an identity/partition strategy.
+// This named policy is attached only to controller endpoints below. Each authenticated
+// user (or anonymous client IP) gets an independent window, avoiding one noisy client
+// consuming the quota for every other caller. A production cluster should replace this
+// in-memory limiter with a distributed store-backed strategy.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("api", limiter =>
-    {
-        limiter.PermitLimit = 100;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-        limiter.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-    });
+    options.AddPolicy("api", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.User.Identity?.Name ??
+            context.Connection.RemoteIpAddress?.ToString() ??
+            "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+            }));
 });
 
 var riskDatabaseConnection = builder.Configuration.GetConnectionString("RiskDatabase")
