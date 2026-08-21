@@ -57,6 +57,27 @@ public sealed class PortfolioApiTests
         // The health check opens the scoped EF Core context and verifies SQLite connectivity.
         using var healthResponse = await client.GetAsync("/health", cancellationToken);
         Assert.Equal(HttpStatusCode.OK, healthResponse.StatusCode);
+        Assert.False(string.IsNullOrWhiteSpace(
+            healthResponse.Headers.GetValues("X-Correlation-ID").Single()));
+    }
+
+    [Fact]
+    public async Task CorrelationIdIsPreservedAndReturnedToTheCaller()
+    {
+        DisableConfigurationReload();
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        request.Headers.Add("X-Correlation-ID", "risk-test-2026-01");
+
+        using var response = await client.SendAsync(
+            request,
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(
+            "risk-test-2026-01",
+            response.Headers.GetValues("X-Correlation-ID").Single());
     }
 
     [Fact]

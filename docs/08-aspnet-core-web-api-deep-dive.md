@@ -798,6 +798,23 @@ each application replica maintains its own counters. A real design asks:
 Rate limiting protects capacity and fairness. It is not authentication, DDoS
 protection, or a substitute for bounded work inside the application.
 
+## 18. Correlation IDs
+
+`CorrelationIdMiddleware` gives every request a bounded identifier. A caller can
+send a safe `X-Correlation-ID` value; otherwise the middleware generates a
+random ID. The same value is returned in the response header, assigned to
+`HttpContext.TraceIdentifier`, and placed in an `ILogger` scope.
+
+That creates one identifier that can be copied from a browser/API response into
+logs and then followed through a risk calculation. The middleware deliberately
+accepts only ASCII letters, digits, `-`, `_`, and `.`, with a 128-character
+limit. This prevents unbounded log fields and avoids treating arbitrary header
+content as a trusted identity.
+
+In a distributed deployment, propagate the ID across the message envelope as
+well. Do not use it as an authentication credential; identity and authorization
+still come from the validated token.
+
 ## 18. Health checks
 
 This project registers and maps:

@@ -158,6 +158,7 @@ warnings-as-errors security audit.
 | `Contracts/PortfolioQueryRequests.cs` | Query-string search contract with bounds for filters and pagination. |
 | `Controllers/PortfoliosController.cs` | Versioned REST adapter for create/get/search/statistics/calculate. It remains thin, passes cancellation, maps contracts, and uses source-generated/cached structured logging. |
 | `ErrorHandling/ApiExceptionHandler.cs` | Central exception-to-Problem-Details mapping, safe handling of unexpected errors, and source-generated logging with stable event IDs. |
+| `Observability/CorrelationIdMiddleware.cs` | Validates or generates `X-Correlation-ID`, returns it to callers, and adds it to the structured logging scope for request tracing. |
 | `Options/RiskApiOptions.cs` | Strongly typed configuration for default confidence and request-size limit. |
 | `appsettings.json` | Non-secret defaults, logging, and SQLite connection string. Environment variables override nested keys with `__`, for example `ConnectionStrings__RiskDatabase`. |
 | `appsettings.Development.json` | Development-only logging override, including visible parameterized EF SQL commands. |

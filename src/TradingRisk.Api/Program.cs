@@ -9,6 +9,7 @@ using TradingRisk.Application.Portfolios;
 using TradingRisk.Application.Risk;
 using TradingRisk.Domain.Risk;
 using TradingRisk.Infrastructure.Persistence;
+using TradingRisk.Api.Observability;
 using TradingRisk.Api.RiskJobs;
 
 // Top-level statements are compiled into a generated Main method. Execution begins here,
@@ -157,6 +158,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 // Middleware runs in registration order on the request and unwinds in reverse order for
 // the response. Error handling is early so it can catch failures from later components.
 app.UseExceptionHandler();
+app.UseMiddleware<CorrelationIdMiddleware>();
 
 // TestServer is already an in-process transport and has no TLS listener to redirect to.
 if (!app.Environment.IsEnvironment("Testing"))
