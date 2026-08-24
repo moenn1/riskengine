@@ -11,6 +11,8 @@ without pretending that the learning adapters are production infrastructure.
 - API rate limiting is partitioned by authenticated user, or by client IP for an
   anonymous request. One noisy client no longer consumes the global quota for all
   callers.
+- Separate liveness (`/health/live`) and readiness (`/health/ready`) probes make
+  deployment behavior explicit; `/health` remains a readiness-compatible alias.
 - The empty, machine-local `.vscode/launch.json` was removed from the repository
   workspace.
 

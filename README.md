@@ -94,7 +94,9 @@ team.
 Once running:
 
 - browser risk workbench: `http://localhost:5229/`
-- health: `http://localhost:5229/health`
+- liveness: `http://localhost:5229/health/live`
+- readiness: `http://localhost:5229/health/ready`
+- health (readiness-compatible alias): `http://localhost:5229/health`
 - OpenAPI document in Development: `http://localhost:5229/openapi/v1.json`
 - interactive Swagger UI in Development: `http://localhost:5229/swagger`
 - runnable request collection:

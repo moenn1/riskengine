@@ -59,6 +59,12 @@ public sealed class PortfolioApiTests
         Assert.Equal(HttpStatusCode.OK, healthResponse.StatusCode);
         Assert.False(string.IsNullOrWhiteSpace(
             healthResponse.Headers.GetValues("X-Correlation-ID").Single()));
+
+        using var livenessResponse = await client.GetAsync("/health/live", cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, livenessResponse.StatusCode);
+
+        using var readinessResponse = await client.GetAsync("/health/ready", cancellationToken);
+        Assert.Equal(HttpStatusCode.OK, readinessResponse.StatusCode);
     }
 
     [Fact]

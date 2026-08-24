@@ -817,14 +817,21 @@ still come from the validated token.
 
 ## 18. Health checks
 
-This project registers and maps:
+This project registers and maps separate liveness and readiness endpoints:
 
 ```csharp
 builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<RiskDbContext>("sqlite");
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health"); // compatibility alias for readiness
 ```
+
+`/health/live` does not call the database and is suitable for a container
+restart probe. `/health/ready` runs the EF/SQLite check and is suitable for a
+load balancer or Kubernetes readiness probe. Keeping those meanings separate
+prevents a dependency outage from causing an unnecessary process restart.
 
 The registered EF check opens the scoped context and verifies SQLite
 connectivity. It is stronger than a process-only check but still does not prove

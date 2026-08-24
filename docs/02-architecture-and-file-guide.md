@@ -141,7 +141,7 @@ warnings-as-errors security audit.
 
 | File | Purpose and lesson |
 |---|---|
-| `Program.cs` | Top-level entry point, middleware order, options validation, DI lifetimes, rate limiting, health/OpenAPI endpoints, and application startup. The visible partial `Program` enables in-process tests; the `Testing` environment skips HTTPS redirection because `TestServer` has no TLS listener. |
+| `Program.cs` | Top-level entry point, middleware order, options validation, DI lifetimes, rate limiting, liveness/readiness health endpoints, OpenAPI endpoints, and application startup. The visible partial `Program` enables in-process tests; the `Testing` environment skips HTTPS redirection because `TestServer` has no TLS listener. |
 | `RiskJobs/IRiskJobQueue.cs` | `IRiskJobBroker` port and job snapshots. The API depends on this abstraction instead of a concrete queue technology. |
 | `RiskJobs/InMemoryRiskJobQueue.cs` | `InMemoryRiskJobBroker`, a bounded `Channel<T>` implementation with backpressure and in-memory job state. It is a learning broker, not durable production messaging. |
 | `RiskJobs/RiskJobWorker.cs` | Hosted background consumer that creates a scoped handler graph for each job and records success/failure. |

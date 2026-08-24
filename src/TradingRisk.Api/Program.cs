@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -201,6 +202,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // Endpoint mappings are terminal destinations selected by routing.
+// Liveness answers “is the process alive?” without touching dependencies. Readiness
+// answers “should this instance receive traffic?” and therefore runs the DB check.
+// Keep /health as a backwards-compatible alias for readiness.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+app.MapHealthChecks("/health/ready");
 app.MapHealthChecks("/health");
 app.MapControllers().RequireRateLimiting("api");
 
