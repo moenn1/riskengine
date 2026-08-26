@@ -676,7 +676,9 @@ async function loadDashboard(page = state.dashboardPage) {
         const row = document.createElement("tr");
         row.className = "portfolio-row-is-expandable";
         row.tabIndex = 0;
+        row.setAttribute("role", "button");
         row.setAttribute("aria-expanded", "false");
+        row.setAttribute("aria-label", `Show positions for ${portfolio.name}`);
         row.title = "Show positions";
         row.append(
           createTableCell(portfolio.name),
@@ -698,6 +700,7 @@ async function loadDashboard(page = state.dashboardPage) {
         const togglePositions = async () => {
           const expanded = row.getAttribute("aria-expanded") === "true";
           row.setAttribute("aria-expanded", String(!expanded));
+          row.setAttribute("aria-label", `${expanded ? "Show" : "Hide"} positions for ${portfolio.name}`);
           detailRow.hidden = expanded;
           if (expanded || detailCell.dataset.loaded === "true") return;
           try {
@@ -870,6 +873,7 @@ function showError(error) {
     behavior: prefersReducedMotion() ? "auto" : "smooth",
     block: "center"
   });
+  elements.errorAlert.focus({ preventScroll: true });
 }
 
 function hideError() {
@@ -887,6 +891,7 @@ function showToast(message) {
 
 function setButtonBusy(button, isBusy, label, icon = "→") {
   button.disabled = isBusy;
+  button.setAttribute("aria-busy", String(isBusy));
   button.classList.toggle("is-busy", isBusy);
   button.replaceChildren();
 

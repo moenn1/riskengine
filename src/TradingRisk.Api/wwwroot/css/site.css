@@ -52,6 +52,15 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+tr:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 3px;
+}
+
 button {
   color: inherit;
 }
@@ -1441,7 +1450,6 @@ table {
 
 .portfolio-row-is-expandable:hover,
 .portfolio-row-is-expandable:focus-visible {
-  outline: none;
   background: var(--teal-pale);
 }
 
@@ -1868,6 +1876,17 @@ table {
 }
 
 @media (max-width: 1050px) {
+  .site-header {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+
+  .site-nav {
+    width: 100%;
+    order: 4;
+    margin: 0;
+  }
+
   .hero {
     grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
     gap: 42px;

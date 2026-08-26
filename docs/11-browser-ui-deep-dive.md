@@ -382,7 +382,12 @@ The API indicator and toast use polite live regions:
 ```
 
 The error panel uses `role="alert"` because failed submissions need more urgent
-announcement.
+announcement. It is focusable and receives focus after rendering so keyboard and
+screen-reader users are taken directly to the failure details.
+
+Portfolio rows that expand to show positions use `tabindex="0"`, `role="button"`,
+and `aria-expanded`. They support both pointer activation and Enter/Space
+keyboard activation, with a changing accessible label for “show” versus “hide”.
 
 The P&L chart is visual, but its complete scenario/value description is also
 written into a visually hidden paragraph and connected with
@@ -459,6 +464,10 @@ scroll container rather than shrinking numeric inputs until they are unusable.
 Interactive controls have a visible `:focus-visible` treatment. Do not remove
 browser outlines without supplying a replacement: keyboard users need to know
 which control will receive the next action.
+
+Busy submit/refresh controls expose `aria-busy="true"` while an asynchronous
+request is running. This preserves a clear state for assistive technology while
+the visual button changes to a spinner and progress label.
 
 ### 8.5 Reduced motion
 
