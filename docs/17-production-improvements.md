@@ -7,7 +7,7 @@ without pretending that the learning adapters are production infrastructure.
 
 - `.gitattributes` standardizes line endings and gives Git useful language-aware
   diffs.
-- The CI workflow verifies formatting and collects cross-platform coverage data.
+- The CI workflow verifies formatting and requires at least one discovered test.
 - API rate limiting is partitioned by authenticated user, or by client IP for an
   anonymous request. One noisy client no longer consumes the global quota for all
   callers.

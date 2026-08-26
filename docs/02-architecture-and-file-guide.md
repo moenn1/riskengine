@@ -64,7 +64,7 @@ for the reasoning behind each boundary.
 | `global.json` | Selects .NET 10 SDK policy and Microsoft Testing Platform as the `dotnet test` runner. `latestFeature` allows an installed later .NET 10 feature band. |
 | `RiskEngine.slnx` | XML solution file listing production and test projects; a solution groups projects but is not deployed. |
 | `Dockerfile` | Multi-stage build: restore/publish with the SDK image, then run as the non-root app user in the smaller ASP.NET runtime image. It creates a writable `/app/App_Data` SQLite volume. |
-| `.github/workflows/ci.yml` | Restores, builds in Release, verifies formatting, collects cross-platform coverage, and tests on each pull request and main-branch push. |
+| `.github/workflows/ci.yml` | Restores, builds in Release, verifies formatting, requires test discovery, and tests on each pull request and main-branch push. |
 | `README.md` | Entry point, architecture summary, safety boundary, commands, and navigation. |
 
 ## Domain project

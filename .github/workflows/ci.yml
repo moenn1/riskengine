@@ -31,4 +31,7 @@ jobs:
         run: dotnet format RiskEngine.slnx --verify-no-changes --no-restore
 
       - name: Test
-        run: dotnet test RiskEngine.slnx --configuration Release --no-build --collect:"XPlat Code Coverage"
+        # xUnit v3 runs as a Microsoft Testing Platform executable; it does not
+        # understand the VSTest-only --collect option. Require discovery explicitly
+        # so a runner/configuration mismatch cannot report a false green build.
+        run: dotnet test RiskEngine.slnx --configuration Release --no-build --minimum-expected-tests 1

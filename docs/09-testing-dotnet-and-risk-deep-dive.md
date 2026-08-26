@@ -179,15 +179,18 @@ locally, then adds two guardrails:
   run: dotnet format RiskEngine.slnx --verify-no-changes --no-restore
 
 - name: Test
-  run: dotnet test RiskEngine.slnx --configuration Release --no-build --collect:"XPlat Code Coverage"
+  run: dotnet test RiskEngine.slnx --configuration Release --no-build --minimum-expected-tests 1
 ```
 
 `--verify-no-changes` makes formatting drift fail the build without rewriting
-the contributor's files. `XPlat Code Coverage` enables the .NET coverage data
-collector; the generated report is evidence about exercised code, not proof of
-financial correctness. A mature pipeline should publish the report, enforce a
-deliberate threshold, and combine it with golden-master, property-based, load,
-and mutation tests.
+the contributor's files. `--minimum-expected-tests 1` prevents a runner or
+adapter mismatch from silently producing a successful-looking zero-test run.
+This project uses xUnit v3 as a Microsoft Testing Platform executable, so the
+VSTest-only `--collect:"XPlat Code Coverage"` option is intentionally not used.
+A mature pipeline can add an MTP-compatible instrumentation tool and publish a
+coverage report, but coverage is evidence about exercised code, not proof of
+financial correctness. It should be combined with golden-master,
+property-based, load, and mutation tests.
 
 ## 7. Domain tests are executable specifications
 
