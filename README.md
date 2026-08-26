@@ -48,6 +48,7 @@ code. Use this study order:
 16. [Non-regression testing in finance](docs/15-non-regression-testing-in-finance.md)
 17. [ASP.NET Core security deep dive](docs/16-aspnet-core-security-deep-dive.md)
 18. [Production-oriented improvements](docs/17-production-improvements.md)
+19. [Cyclomatic complexity review](docs/18-cyclomatic-complexity-review.md)
 
 The C# and project files also contain teaching comments at decisions where a
 Spring developer is likely to ask “why,” while the docs hold the fuller

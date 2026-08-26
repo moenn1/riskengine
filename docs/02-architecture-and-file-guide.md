@@ -218,6 +218,7 @@ PostgreSQL tests should repeat provider-sensitive behavior against PostgreSQL.
 | `docs/15-non-regression-testing-in-finance.md` | Golden fixtures, market-data replay, tolerances, deterministic calculations, performance gates, and release approval. |
 | `docs/16-aspnet-core-security-deep-dive.md` | JWT bearer validation, claims/policies, 401/403 behavior, browser flow, and production security boundaries. |
 | `docs/17-production-improvements.md` | Explains the repository cleanup, partitioned rate limiter, CI checks, and the next production-hardening increments. |
+| `docs/18-cyclomatic-complexity-review.md` | Repository-wide complexity review, refactoring decision, and guidelines for keeping future business methods maintainable. |
 
 ## Rules that protect the architecture
 
