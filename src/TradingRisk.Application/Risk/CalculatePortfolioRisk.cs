@@ -58,7 +58,32 @@ public sealed class CalculatePortfolioRiskHandler(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
+        ValidateQuery(query);
 
+        var portfolio = await repository.GetByIdAsync(
+            new PortfolioId(query.PortfolioId),
+            cancellationToken);
+
+        if (portfolio is null)
+        {
+            throw new PortfolioNotFoundException(query.PortfolioId);
+        }
+
+        // Domain factories normalize IDs, validate return bounds, and take owned snapshots.
+        var scenarios = MapScenarios(query.Scenarios!);
+
+        var report = riskCalculator.Calculate(
+            portfolio,
+            scenarios,
+            query.ConfidenceLevel);
+
+        // TimeProvider, rather than DateTimeOffset.UtcNow, makes calculation time
+        // deterministic in tests and explicit as an external dependency.
+        return MapReport(report);
+    }
+
+    private static void ValidateQuery(CalculatePortfolioRiskQuery query)
+    {
         if (query.PortfolioId == Guid.Empty)
         {
             throw new RequestValidationException("Portfolio ID cannot be empty.");
@@ -87,26 +112,14 @@ public sealed class CalculatePortfolioRiskHandler(
             throw new RequestValidationException(
                 $"Historical scenario date '{duplicateDate.Key:yyyy-MM-dd}' is duplicated.");
         }
+    }
 
-        var portfolio = await repository.GetByIdAsync(
-            new PortfolioId(query.PortfolioId),
-            cancellationToken);
+    private static HistoricalScenario[] MapScenarios(
+        IReadOnlyCollection<HistoricalScenarioInput> inputs) =>
+        inputs.Select(MapScenario).ToArray();
 
-        if (portfolio is null)
-        {
-            throw new PortfolioNotFoundException(query.PortfolioId);
-        }
-
-        // Domain factories normalize IDs, validate return bounds, and take owned snapshots.
-        var scenarios = query.Scenarios
-            .Select(MapScenario)
-            .ToArray();
-
-        var report = riskCalculator.Calculate(
-            portfolio,
-            scenarios,
-            query.ConfidenceLevel);
-
+    private RiskReportDto MapReport(RiskReport report)
+    {
         // TimeProvider, rather than DateTimeOffset.UtcNow, makes calculation time
         // deterministic in tests and explicit as an external dependency.
         return new RiskReportDto(
