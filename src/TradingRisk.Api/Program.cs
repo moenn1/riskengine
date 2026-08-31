@@ -181,6 +181,13 @@ app.Use(async (context, next) =>
     context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
     context.Response.Headers.TryAdd("X-Frame-Options", "DENY");
     context.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+    // Risk results can contain sensitive position data; never let browsers or
+    // intermediary proxies cache API responses by accident.
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.Headers.TryAdd("Cache-Control", "no-store");
+        context.Response.Headers.TryAdd("Pragma", "no-cache");
+    }
     if (!app.Environment.IsDevelopment())
     {
         context.Response.Headers.TryAdd(
