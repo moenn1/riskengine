@@ -23,6 +23,12 @@ var builder = WebApplication.CreateBuilder(args);
 // AddOptions -> @ConfigurationProperties
 // Registration describes what the service provider can create; it does not yet build it.
 builder.Services.AddControllers();
+// Compress JSON risk reports over the wire; this is especially useful for large
+// scenario distributions while remaining transparent to browser/API clients.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 builder.Services.AddOptions<SecurityOptions>()
     .Bind(builder.Configuration.GetSection(SecurityOptions.SectionName))
     .Validate(options => !string.IsNullOrWhiteSpace(options.Authority) ||
@@ -148,6 +154,8 @@ builder.Services.AddHostedService<RiskJobWorker>();
 // Build creates the root service provider and WebApplication. app.Run below, not Build,
 // starts Kestrel and waits for shutdown.
 var app = builder.Build();
+
+app.UseResponseCompression();
 
 // Local learning/test hosts can apply SQLite migrations. Production replicas must use a
 // reviewed migration bundle or deployment job, never race while the app is starting.
